@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TrueWrite Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 40px;
+        }
+        .option-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 50px;
+        }
+        .option-card {
+            width: 300px;
+            padding: 30px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .option-card h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        .option-card p {
+            color: #7f8c8d;
+        }
+        .teacher-card {
+            border-top: 4px solid #e74c3c;
+        }
+        .student-card {
+            border-top: 4px solid #2ecc71;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-top: 50px;">
+        <h1 style="font-family: Arial, sans-serif; font-size: 36px;">
+            <span style="color: #003366;">Pru</span><span style="color: #2e8b57;">fia</span>
+        </h1>
+        <p style="font-family: Arial, sans-serif; font-size: 18px; color: #003366;">
+            The Identity Behind Every Word
+        </p>
+    </div>
+
+    <p>Select your role to continue:</p>
+    
+    <div class="option-container">
+        <a href="/teacher" class="option-card teacher-card">
+            <h2>Teacher Dashboard</h2>
+            <p>Upload and analyze student assignments, view matching results</p>
+        </a>
+        
+        <a href="/student" class="option-card student-card">
+            <h2>Student Portal</h2>
+            <p>Submit your writing samples for authentication</p>
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        .flag {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .green { background-color: #c8f7c5; color: #27632a; }
+        .yellow { background-color: #fff3cd; color: #856404; }
+        .orange { background-color: #ffe5b4; color: #a35b00; }
+        .red { background-color: #f8d7da; color: #721c24; }
+        form {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        input[type="file"], input[type="text"] {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .history-container {
+            flex: 1;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .history-title {
+            font-size: 1.4em;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .history-item:hover {
+            background-color:rgba(76, 175, 80, 0.05);
+        }
+        .delete-icon {
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+        }
+        .delete-icon:hover {
+            color: #d9534f;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 4px;
+            color: white;
+            background-color: #333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            max-width: 300px;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .toast.success {
+            background-color: #4CAF50;
+        }
+        .toast.error {
+            background-color: #f44336;
+        }
+        .toast.info {
+            background-color: #2196F3;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #uploadResults, #matchResults {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f0f0f0;
+        }
+        .result-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .content-container {
+            display: flex;
+            gap: 60px;
+        }
+        #filter-input {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: 1px solid var(--medium-gray);
+            border-radius: var(--radius-sm);
+            width: 100%;
+            max-width: 400px;
+            transition: var(--transition);
+        }
+
+        #filter-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .history-list {
+            list-style-type: none;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+            /* Style individual buttons */
+        .action-buttons button {
+            padding: 4px 8px;
+            font-size: 13px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .history-item-details {
+            padding: 10px 0;
+            display: none;
+        }
+        .history-item.expanded .history-item-details {
+            display: block;
+        }
+        .history-date {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .content-container {
+                gap: 20px;
+            }
+            
+            .history-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .filter-container {
+                padding: 10px 15px;
+            }
+            
+            .history-item {
+                padding: 12px 15px;
+            }
+            
+            .action-buttons {
+                gap: 8px;
+            }
+            
+            .action-btn {
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #666;
+                transition: var(--transition);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+            }
+            
+            .action-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+        }
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--medium-gray);
+            transition: var(--transition);
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            
+            .history-item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .action-buttons {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+            /* Example button colors */
+        .view-btn {
+            background-color:none;
+            color: #fff;
+        }
+
+        .download-btn {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .show-btn {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+            /* Hover effects */
+        .action-buttons button:hover {
+            opacity: 0.8;
+        }
+        .rotate-180 {
+            transform: rotate(180deg);
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h2>TrueWrite Teacher Dashboard</h2>
+    <div class="content-container">
+        <div>
+            <!-- File Upload Form -->
+            <form id="uploadForm">
+                <h3>Upload Assignments</h3>
+                <label>Select files (multiple allowed):</label>
+                <input type="file" id="assignmentFiles" name="files" multiple>
+                <button type="submit">Upload</button>
+            </form>
+            <div id="uploadResults"></div>
+
+            <!-- Manual Match Form -->
+            <form id="manualMatchForm">
+                <h3>Manual Match</h3>
+                <label>File Name:</label>
+                <input type="text" id="fileName" name="file_name" required>
+                <label>Student ID:</label>
+                <input type="text" id="studentId" name="student_id" required>
+                <button type="submit">Match</button>
+            </form>
+            <div id="matchResults"></div>
+
+            <!-- Confidence Guide -->
+            <div>
+                <h3>Confidence Score Guide</h3>
+                <ul>
+                    <li><span class="flag green">✅Strong Match (0.85 - 1.00):</span> Authored by student. Light edits okay. Trusted.</li>
+                    <li><span class="flag yellow">⚠️Likely Match (0.70 - 0.84):</span> May include AI tools or human help. Review recommended.</li>
+                    <li><span class="flag red">❌Possible Mismatch (< 0.69):</span> 'Significant deviation. Manual review advised.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="history-container">
+            <div class="history-title">
+                <h2>Student Submissions</h2>
+            </div>
+            <div class="filter-container">
+                <input type="text" id="filter-input" placeholder="Search submissions..." />
+            </div>
+            <ul class="history-list">
+                <!-- Submission 1 -->
+                <li class="history-item">
+                    <div class="history-item-header">
+                        <span class="history-date">May 15, 2023 - 10:30 AM</span>
+                        <div class="action-buttons">
+                            <button class="action-btn show-btn" title="Show" onclick="showItem(1)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn download-btn" title="Download" onclick="downloadItem(1)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn toggle-btn" title="View details" onclick="toggleDetails(this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 1)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="history-item-details">
+                        <p><strong>Student:</strong> John Doe</p>
+                        <p><strong>Assignment:</strong> Math Homework #5</p>
+                        <p><strong>Status:</strong> <span class="flag green">Submitted</span></p>
+                        <p><strong>Score:</strong> 92/100</p>
+                    </div>
+                </li>
+
+                <!-- Submission 2 -->
+                <li class="history-item">
+                    <div class="history-item-header">
+                        <span class="history-date">May 14, 2023 - 2:15 PM</span>
+                        <div class="action-buttons">
+                            <button class="action-btn show-btn" title="Show" onclick="showItem(2)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn download-btn" title="Download" onclick="downloadItem(2)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn toggle-btn" title="View details" onclick="toggleDetails(this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 2)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="history-item-details">
+                        <p><strong>Student:</strong> Jane Smith</p>
+                        <p><strong>Assignment:</strong> Science Project</p>
+                        <p><strong>Status:</strong> <span class="flag yellow">Pending Review</span></p>
+                        <p><strong>Submitted:</strong> 2 days ago</p>
+                    </div>
+                </li>
+
+                <!-- Submission 3 -->
+                <li class="history-item">
+                    <div class="history-item-header">
+                        <span class="history-date">May 12, 2023 - 9:45 AM</span>
+                        <div class="action-buttons">
+                            <button class="action-btn show-btn" title="Show" onclick="showItem(3)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn download-btn" title="Download" onclick="downloadItem(3)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn toggle-btn" title="View details" onclick="toggleDetails(this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 3)">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="history-item-details">
+                        <p><strong>Student:</strong> Alex Johnson</p>
+                        <p><strong>Assignment:</strong> History Essay</p>
+                        <p><strong>Status:</strong> <span class="flag orange">Late Submission</span></p>
+                        <p><strong>Score:</strong> 85/100</p>
+                        <p><strong>Feedback:</strong> Good analysis but needs more citations.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>    
+    <div id="toast" class="toast"></div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+        function toggleDetails(button) {
+            const item = button.closest('.history-item');
+            item.classList.toggle('expanded');
+            button.classList.toggle('rotate-180');
+        }
+        document.getElementById('filter-input').addEventListener('input', function(e) {
+            const filter = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.history-item');
+            
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+        // Handle file uploads
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultsDiv = document.getElementById('uploadResults');
+            resultsDiv.innerHTML = '<p>Uploading files...</p>';
+            
+            const formData = new FormData();
+            const files = document.getElementById('assignmentFiles').files;
+            
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            try {
+                const response = await fetch('/upload_assignments', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                displayUploadResults(data);
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+        function toggleRotate(svgElement) {
+            svgElement.classList.toggle('rotate-180');
+        }
+        function downloadItem(id) {
+            showToast(`Downloading submission ${id}`, 'success');
+        }
+        function showItem(id) {
+            showToast(`Showing submission ${id}`, 'info');
+        }
+        // Handle manual matching
+        document.getElementById('manualMatchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultsDiv = document.getElementById('matchResults');
+            resultsDiv.innerHTML = '<p>Processing match...</p>';            
+            const formData = new FormData();
+            formData.append('file_name', document.getElementById('fileName').value);
+            formData.append('student_id', document.getElementById('studentId').value);
+            try {
+                const response = await fetch('/manual_match', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    showToast(`HTTP error! Status: ${response.status}`);
+                }                
+                const data = await response.json();
+                displayMatchResult(data);
+            } catch (error) {
+                console.log("error:", error)
+                showToast('Failed to load item details', 'error');
+            }
+        });
+
+        // Display upload results
+        function displayUploadResults(data) {
+            const resultsDiv = document.getElementById('uploadResults');
+            resultsDiv.innerHTML = '<h4>Upload Results:</h4>';
+            
+            for (const [filename, result] of Object.entries(data)) {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                
+                if (result.error) {
+                    item.innerHTML = `
+                        <strong>${filename}:</strong> 
+                        <span class="error">${result.error}</span>
+                    `;
+                } else {
+                    let flagClass = 'red';
+                    if (result.score >= 85) flagClass = 'green';
+                    else if (result.score >= 70) flagClass = 'yellow';
+                    
+                    item.innerHTML = `
+                        <strong>${filename}:</strong>
+                        <span class="flag ${flagClass}">${result.interpretation}</span>
+                        (Score: ${result.score})<br>
+                        <small>Student: ${result.student_id}</small>
+                    `;
+                }
+                
+                resultsDiv.appendChild(item);
+            }
+        }
+        function showToast(message, type = 'info', duration = 3000) {
+            console.log("message", message)
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+        
+        // Display manual match result
+        function displayMatchResult(data) {
+            const resultsDiv = document.getElementById('matchResults');
+            
+            if (data.error) {
+                resultsDiv.innerHTML = `
+                    <div class="result-item error">
+                        <strong>Error:</strong> ${data.error}
+                    </div>
+                `;
+            } else {
+                let flagClass = 'red';
+                if (data.score >= 85) flagClass = 'green';
+                else if (data.score >= 70) flagClass = 'yellow';
+                
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <strong>Match Result:</strong>
+                        <span class="flag ${flagClass}">Score: ${data.score}</span><br>
+                        <small>File: ${data.file_path}</small>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

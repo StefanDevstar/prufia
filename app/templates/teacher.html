@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <h2><i class="fas fa-chalkboard-teacher"></i> TrueWrite Teacher Dashboard</h2>
+    
+    <div class="content-container">
+        <div style="width: 55%; padding:10px;">
+            <form id="uploadForm">
+                <h3><i class="fas fa-upload"></i> Upload Assignments</h3>
+                <label>Select files (multiple allowed):</label>
+                <input type="file" id="assignmentFiles" name="files" multiple>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="submit"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+                </div>
+            </form>
+            <div id="uploadResults"></div>
+            <form id="manualMatchForm">
+                <h3><i class="fas fa-link"></i> Manual Match</h3>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="fileName" class="input-label">File Name</label>
+                        <input type="text" id="fileName" name="file_name" class="custom-input" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="studentId" class="input-label">Student ID</label>
+                        <input type="text" id="studentId" name="student_id" class="custom-input" required>
+                    </div>
+                </div>
+                <button type="submit" style="margin-top: 10px;">
+                    <i class="fas fa-check-circle"></i> Confirm Match
+                </button>
+            </form>
+            <div id="matchResults"></div>
+
+            <div style="background: var(--white); padding: 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                <h3><i class="fas fa-info-circle"></i> Confidence Score Guide</h3>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag green">Over 85</span>
+                    <div>
+                        <strong>Strong Match</strong><br>
+                        Authored by student. Light edits okay. Trusted submission.
+                    </div>
+                    </li>
+                    <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag yellow">70-84</span>
+                    <div>
+                        <strong>Likely Match</strong><br>
+                        May include AI tools or human help. Review recommended.
+                    </div>
+                    </li>
+                    <li style="display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag red">Below 70</span>
+                    <div>
+                        <strong>Probable Mismatch</strong><br>
+                        Unlikely to be student's work. Investigation needed.
+                    </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="history-container">
+            <div class="history-header">
+                <h3><i class="fas fa-users"></i> Student Submissions</h3>
+                <div class="history-controls">
+                </div>
+            </div>
+            
+           <div class="filter-container">
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="filter-input" class="search-input" placeholder="Search by student, assignment, or date...">
+            </div>
+            <div class="date-range">
+                <div class="date-input">
+                <label for="filter-date-from" class="date-label">From</label>
+                <input type="date" id="filter-date-from" class="date-picker">
+                </div>
+                <div class="date-input">
+                <label for="filter-date-to" class="date-label">To</label>
+                <input type="date" id="filter-date-to" class="date-picker">
+                </div>
+            </div>
+            </div>
+            
+            <ul class="history-list">
+                <!-- Submission 1 - Strong Match -->
+                {% for baseline in baselines %}
+                <li class="history-item" data-id="{{ baseline.id }}"
+                    data-name="{{ baseline.name_or_alias }}"
+                    data-student-id="{{ baseline.student_id }}"
+                    data-created-at="{{ baseline.created_at.strftime('%Y-%m-%d %H:%M') }}" 
+                    data-file="{{baseline.baseline_1_path.split('\\').pop().split('.')[0]}}-{{baseline.baseline_2_path.split('\\').pop().split('.')[0]}}"
+                    onclick="fillFromListItem(this)">
+                    <div class="history-item-header">
+                        <div class="history-item-main">
+                            <div class="history-meta">
+                                <div class="history-title">
+                                    <span>{{baseline.name_or_alias}}</span>
+                                    <span class="flag green">{% if baseline.score_baseline_2 in [None, '?', ''] %}
+                                            ?
+                                        {% else %}
+                                            {{ baseline.score_baseline_2 }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="history-student">{{baseline.baseline_1_path.split('\\').pop().split('.')[0]}}-{{baseline.baseline_2_path.split('\\').pop().split('.')[0]}}  ({{baseline.baseline_1_path.split('\\').pop().split('.')[-1].split('.')[0]}})</div>
+                                <div class="history-date">Submitted : {{ baseline.created_at.strftime('%B %d, %Y - %I:%M %p') }}</div>
+                            </div>
+                            <div class="history-score">Pending</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn show-btn" title="View" onclick="showItem(1)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <div id="report-content" style="display:none;">
+                            <h2>Prufia Authorship Report</h2>
+                            <p><strong>Student:</strong> John Doe (ID: S10045)</p>
+                            <p><strong>Assignment:</strong> English Essay 1</p>
+                            <p><strong>Final Score:</strong> 92</p>
+                            <p><strong>Trust Flag:</strong> Green</p>
+                            <p><strong>Interpretation:</strong> Strong Match – Authored by 
+                            student.</p>
+                            <p><strong>Submitted:</strong> May 14, 2025 – 10:35 AM</p>
+                        </div>
+                        <button class="action-btn download-btn" title="Download" onclick="downloadItem()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn toggle-btn" title="Details" onclick="toggleDetails(this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 1)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="history-item-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Class:</div>
+                            <div class="detail-value">Mathematics - Algebra II</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Due Date:</div>
+                            <div class="detail-value">May 14, 2023</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Confidence:</div>
+                            <div class="detail-value">
+                                <div>92% match with writing profile</div>
+                                <div class="confidence-meter">
+                                    <div class="confidence-level" style="width: 92%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Feedback:</div>
+                            <div class="detail-value">Excellent work showing all steps. Minor arithmetic errors in problem 4.</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Files:</div>
+                            <div class="detail-value">
+                                <a href="#" style="color: var(--primary-color); text-decoration: none;">algebra_final_john_doe.pdf</a> (2.4MB)
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                {% endfor %}    
+<!--
+                <li class="history-item" data-id="1" data-student="john-doe" data-class="math" data-date="2023-05-15">
+                    <div class="history-item-header">
+                        <div class="history-item-main">
+                            <div class="history-meta">
+                                <div class="history-title">
+                                    <span>Algebra Final Exam</span>
+                                    <span class="flag green">92</span>
+                                </div>
+                                <div class="history-student">John Doe (ID: S10045)</div>
+                                <div class="history-date">Submitted: May 15, 2023 - 10:30 AM</div>
+                            </div>
+                            <div class="history-score">Score: 94/100</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn show-btn" title="View" onclick="showItem(1)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn download-btn" title="Download" onclick="downloadItem(1)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn toggle-btn" title="Details" onclick="toggleDetails(this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 1)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="history-item-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Class:</div>
+                            <div class="detail-value">Mathematics - Algebra II</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Due Date:</div>
+                            <div class="detail-value">May 14, 2023</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Confidence:</div>
+                            <div class="detail-value">
+                                <div>92% match with writing profile</div>
+                                <div class="confidence-meter">
+                                    <div class="confidence-level" style="width: 92%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Feedback:</div>
+                            <div class="detail-value">Excellent work showing all steps. Minor arithmetic errors in problem 4.</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Files:</div>
+                            <div class="detail-value">
+                                <a href="#" style="color: var(--primary-color); text-decoration: none;">algebra_final_john_doe.pdf</a> (2.4MB)
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                <li class="history-item" data-id="2" data-student="jane-smith" data-class="science" data-date="2023-05-14">
+                    <div class="history-item-header">
+                        <div class="history-item-main">
+                            <div class="history-meta">
+                                <div class="history-title">
+                                    <span>Chemistry Lab Report</span>
+                                    <span class="flag yellow">78</span>
+                                </div>
+                                <div class="history-student">Jane Smith (ID: S10072)</div>
+                                <div class="history-date">Submitted: May 14, 2023 - 2:15 PM</div>
+                            </div>
+                            <div class="history-score">Pending</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn show-btn" title="View" onclick="showItem(2)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn download-btn" title="Download" onclick="downloadItem(2)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn toggle-btn" title="Details" onclick="toggleDetails(this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 2)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="history-item-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Class:</div>
+                            <div class="detail-value">Science - Chemistry</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Due Date:</div>
+                            <div class="detail-value">May 12, 2023</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Confidence:</div>
+                            <div class="detail-value">
+                                <div>78% match with writing profile</div>
+                                <div class="confidence-meter">
+                                    <div class="confidence-level" style="width: 78%; background: var(--warning-color);"></div>
+                                </div>
+                                <small style="color: var(--warning-color);">Note: Unusual vocabulary detected</small>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Files:</div>
+                            <div class="detail-value">
+                                <a href="#" style="color: var(--primary-color); text-decoration: none;">chem_lab_3_jane_smith.docx</a> (1.8MB)
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                <li class="history-item" data-id="3" data-student="alex-johnson" data-class="history" data-date="2023-05-12">
+                    <div class="history-item-header">
+                        <div class="history-item-main">
+                            <div class="history-meta">
+                                <div class="history-title">
+                                    <span>World War II Essay</span>
+                                    <span class="flag red">62</span>
+                                </div>
+                                <div class="history-student">Alex Johnson (ID: S10123)</div>
+                                <div class="history-date">Submitted: May 12, 2023 - 9:45 AM</div>
+                            </div>
+                            <div class="history-score">Score: 62/100</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn show-btn" title="View" onclick="showItem(3)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn download-btn" title="Download" onclick="downloadItem(3)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn toggle-btn" title="Details" onclick="toggleDetails(this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete" onclick="deleteItem(event, 3)">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="history-item-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Class:</div>
+                            <div class="detail-value">History - Modern World</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Due Date:</div>
+                            <div class="detail-value">May 10, 2023 <span class="flag red">Late</span></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Confidence:</div>
+                            <div class="detail-value">
+                                <div>62% match with writing profile</div>
+                                <div class="confidence-meter">
+                                    <div class="confidence-level" style="width: 62%; background: var(--danger-color);"></div>
+                                </div>
+                                <small style="color: var(--danger-color);">Alert: Significant deviation from typical writing style</small>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Feedback:</div>
+                            <div class="detail-value">Well-researched but needs more citations. Writing style differs from previous submissions.</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Files:</div>
+                            <div class="detail-value">
+                                <a href="#" style="color: var(--primary-color); text-decoration: none;">wwii_essay_alex_johnson.docx</a> (3.2MB)
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Actions:</div>
+                            <div class="detail-value">
+                                <button class="btn secondary" style="padding: 5px 10px; font-size: 12px;">
+                                    <i class="fas fa-flag"></i> Flag for Review
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </li>-->
+            </ul>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        let uploadedFilename='';
+        // Toggle item details
+        function toggleDetails(button) {
+            const item = button.closest('.history-item');
+            item.classList.toggle('expanded');
+            button.classList.toggle('rotate-180');
+        }
+
+        // Show submission details
+        function showItem(id) {
+            showToast(`Loading submission ${id} details...`, 'info');
+            // In a real app, you would fetch the details from the server
+            setTimeout(() => {
+                showToast(`Submission ${id} details loaded`, 'success');
+            }, 1000);
+        }
+
+        /*function downloadItem() {
+            const element = document.getElementById("report-content");
+            html2pdf()
+                .from(element)
+                .save("Prufia_Report.pdf");
+        }*/
+        function downloadItem() {
+            // Create the report content dynamically
+            const reportContent = `
+                <div id="pdf-content" style="padding: 20px; font-family: Arial, sans-serif;">
+                    <h1 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;">Prufia Authorship Report</h1>
+                    
+                    <div style="margin-top: 20px;">
+                        <p><strong>Student:</strong> John Doe (ID: S10045)</p>
+                        <p><strong>Assignment:</strong> English Essay 1</p>
+                        <p><strong>Final Score:</strong> 92</p>
+                        <p><strong>Trust Flag:</strong> <span style="color: green;">Green</span></p>
+                        <p><strong>Interpretation:</strong> Strong Match – Authored by student.</p>
+                        <p><strong>Submitted:</strong> May 14, 2025 – 10:35 AM</p>
+                    </div>
+                    
+                    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                        <h3>Confidence Score Explanation</h3>
+                        <p>This score indicates a very high likelihood that the submitted work was authored by the student.</p>
+                    </div>
+                </div>
+            `;
+
+            // Create a temporary container
+            const element = document.createElement('div');
+            element.innerHTML = reportContent;
+            document.body.appendChild(element);
+
+            // PDF options
+            const options = {
+                margin: 10,
+                filename: 'Prufia_Report.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    logging: true,
+                    useCORS: true,
+                    allowTaint: true
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait' 
+                }
+            };
+
+            // Generate PDF
+            html2pdf()
+                .from(element)
+                .set(options)
+                .save()
+                .then(() => {
+                    console.log('PDF generated successfully');
+                })
+                .catch(err => {
+                    console.error('PDF generation error:', err);
+                    alert('Failed to generate PDF. Please try again.');
+                })
+                .finally(() => {
+                    // Clean up
+                    document.body.removeChild(element);
+                });
+        }
+        // Delete submission with confirmation
+        function deleteItem(event, id) {
+            event.stopPropagation();
+            if (confirm(`Are you sure you want to delete submission ${id}? This cannot be undone.`)) {
+                showToast(`Deleting submission ${id}...`, 'info');
+                // Simulate deletion
+                setTimeout(() => {
+                    event.target.closest('.history-item').style.opacity = '0';
+                    setTimeout(() => {
+                        event.target.closest('.history-item').remove();
+                        showToast(`Submission ${id} deleted`, 'error');
+                    }, 300);
+                }, 800);
+            }
+        }
+
+        // Filter submissions
+        document.getElementById('filter-input').addEventListener('input', function(e) {
+            const filter = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.history-item');
+            
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(filter) ? '' : 'none';
+            });
+        });
+
+        // Filter by class
+        /* document.getElementById('filter-class').addEventListener('change', function(e) {
+            const classFilter = e.target.value;
+            const items = document.querySelectorAll('.history-item');
+            
+            items.forEach(item => {
+                if (!classFilter || item.dataset.class === classFilter) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }); */
+
+        // Date range filtering
+        document.getElementById('filter-date-from').addEventListener('change', filterByDate);
+        document.getElementById('filter-date-to').addEventListener('change', filterByDate);
+
+        function filterByDate() {
+            const fromDate = document.getElementById('filter-date-from').value;
+            const toDate = document.getElementById('filter-date-to').value;
+            const items = document.querySelectorAll('.history-item');
+            
+            items.forEach(item => {
+                const itemDate = item.dataset.date;
+                const showItem = (!fromDate || itemDate >= fromDate) && 
+                                (!toDate || itemDate <= toDate);
+                item.style.display = showItem ? '' : 'none';
+            });
+        }
+
+        // Export functionality
+        function exportSubmissions() {
+            showToast('Preparing export file...', 'info');
+            // Simulate export preparation
+            setTimeout(() => {
+                showToast('Export completed. Download will start shortly.', 'success');
+                // In a real app, this would trigger the file download
+            }, 1500);
+        }
+
+        // Show batch upload modal
+        function showBatchUpload() {
+            showToast('Batch upload feature coming soon!', 'info', 2000);
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // Handle file uploads
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showToast('Uploading files...', 'info');
+            
+            const formData = new FormData();
+            const files = document.getElementById('assignmentFiles').files;
+            
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            try {
+                const response = await fetch('/upload_assignments', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                uploadedFilename=data.saved_path
+                displayUploadResults(data);
+                setTimeout(() => {
+                    showToast(`Baseline samples uploaded successfully.`, 'success');                   
+                }, 2000);
+            } catch (error) {
+                showToast(`Upload failed: ${error.message}`, 'error');
+            }
+        });
+
+       
+        function displayUploadResults(data) {
+            const resultsDiv = document.getElementById('uploadResults');
+            resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> Uploaded successfully</h4>';           
+        }
+
+        document.getElementById('manualMatchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileName = document.getElementById('fileName').value;
+            const studentId = document.getElementById('studentId').value;
+            const files = document.getElementById('assignmentFiles').files;
+            
+            const parts = fileName.split('-');
+            const base1 = `${parts[0]}-${parts[1]}`; // "asdfs-ef34fre"
+            const base2 = `${parts[2]}-${parts[3]}`.replace(' ','').replace('(txt)','');
+            const ext = uploadedFilename.split('.').pop()
+            const fName = uploadedFilename.split('\\').pop();
+            if (!fileName || !studentId) {
+                showToast('Please fill in both fields', 'error');
+                return;
+            }
+
+            if(uploadedFilename==''){
+                showToast('Please upload your file.', 'error');
+                return;
+            }
+
+            showToast(`Matching ${fileName} to student ${studentId}...`, 'info');
+            const data={
+                tech:fName,
+                extension:ext,
+                baseline_1:base1,
+                baseline_2:base2,
+                studentId:studentId
+            }
+            console.log("data---",data)
+            let result={}
+            try{
+                const response = await fetch('/analyze',{
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',  // Add this header
+                    },
+                    body: JSON.stringify(data) 
+                })   
+                result = await response.json();   
+                console.log("result====", result)          
+            }catch (error) {
+                showToast(`Comparison failed: ${error.message}`, 'error');
+            }
+
+
+            // Simulate matching
+            setTimeout(() => {
+                const score = Math.floor(Math.random() * 30) + 60; // Random score between 60-90
+                let interpretation, flagClass;
+                
+                if (score >= 85) {
+                    interpretation = 'Strong Match';
+                    flagClass = 'green';
+                } else if (score >= 70) {
+                    interpretation = 'Likely Match';
+                    flagClass = 'yellow';
+                } else {
+                    interpretation = 'Questionable';
+                    flagClass = 'orange';
+                }
+                
+                displayMatchResult({
+                    file_path: fileName,
+                    student_id: studentId,
+                    score: result.score,
+                    interpretation: result.status,
+                    flagClass: result.flag
+                });
+                
+                showToast(`Match completed with score ${result.score}%`, 'success');
+            }, 1500);
+        });
+        function fillFromListItem(item) {
+            const name = item.dataset.name;
+            const studentId = item.dataset.studentId;
+            const createdAt = item.dataset.createdAt;
+            const fileName= item.dataset.file;
+            
+            // Create filename from name and date
+            //const filename = `${name}_${createdAt.replace(/[: ]/g, '-')}`;
+            
+            document.getElementById('fileName').value = fileName;
+            document.getElementById('studentId').value = studentId;
+            document.getElementById('fileName').classList.add('highlight');
+            document.getElementById('studentId').classList.add('highlight');
+            setTimeout(() => {
+                document.getElementById('fileName').classList.remove('highlight');
+                document.getElementById('studentId').classList.remove('highlight');
+            }, 2000);
+        }
+        // Display manual match result
+        function displayMatchResult(data) {
+            const resultsDiv = document.getElementById('matchResults');
+            resultsDiv.innerHTML = `
+                <h4><i class="fas fa-link"></i> Match Result</h4>
+                <div class="result-item" style="padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <div>
+                            <strong>${data.file_path}</strong><br>
+                            <small>Matched to: ${data.student_id}</small>
+                        </div>
+                        <span class="flag ${data.flagClass}">${data.interpretation}</span>
+                    </div>
+                    <div>
+                        Confidence Score: ${data.score}%
+                        <div class="confidence-meter" style="margin-top: 3px;">
+                            <div class="confidence-level" style="width: ${data.score}%; 
+                                ${data.score >= 85 ? '' : data.score >= 70 ? 'background: var(--warning-color)' : 'background: var(--danger-color)'}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
