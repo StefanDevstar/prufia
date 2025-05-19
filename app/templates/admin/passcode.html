@@ -43,19 +43,31 @@
                         <tbody>
                             {% for student in students %}
                             <tr>
-                                <td>{{ student[0] }}</td>
-                                <td>{{ student[1] }}</td>
-                                <td>{{ student[2] }}</td>
-                                <td id="passcode-{{ student[0] }}"></td>                                
+                                <td>{{ student['student_id'] }}</td>
+                                <td>{{ student['name_or_alias'] }}</td>
+                                <td>{{ student['email'] }}</td>
+                                <td id="passcode-{{ student['student_id'] }}">
+                                    {% if student['passcode'] %}
+                                        <code>{{ student['passcode'] }}</code>
+                                    {% else %}
+                                        <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <button class="btn btn-outline-primary generate-passcode-btn" 
-                                                data-student-id="{{ student[0] }}">
+                                                data-student-id="{{ student['student_id'] }}">
                                             <i class="bi bi-key"></i> Generate
                                         </button>
                                     </div>
                                 </td>
-                                <td id="use-status-{{ student[0] }}"></td>
+                                <td id="use-status-{{ student['student_id'] }}">
+                                    {% if student['used'] %}
+                                        <span class="badge bg-danger">Used</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -87,18 +99,68 @@
             </div>
         </div>
     </div>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">System Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        var socket = io();
+        const  socket = io();
+        socket.on('connect', () => {
+            console.log('Connected to server with socket ID:', socket.id);
+            
+            // Join admin room if needed
+            socket.emit('join-admin-room');
+        });
+        
+        // Handle student login events
         socket.on('student-login', function(data) {
-            var elementId = `use-status-${data.student_id}`;
-            var element = document.getElementById(elementId);
-            if (element) {
-                // Change "Unused" to "Used"
-                element.innerHTML = `<span class="text-success">Used<span>`;
+            console.log('Received login event:', data);
+            
+            // Update the status cell for this student
+            const statusCell = document.getElementById(`use-status-${data.student_id}`);
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="badge bg-danger">Used</span>
+                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                `;
+            }
+            
+            // Show notification
+            showNotification(`Student ${data.student_id} just logged in`);
+        });
+        
+        // Handle connection errors
+        socket.on('connect_error', (error) => {
+            console.error('Connection Error:', error);
+        });
+        
+        // Handle disconnection
+        socket.on('disconnect', (reason) => {
+            console.log('Disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                // Reconnect manually if needed
+                socket.connect();
             }
         });
+        
+        // Notification function
+        function showNotification(message) {
+            const toastEl = document.getElementById('notificationToast');
+            const toastBody = document.getElementById('toastMessage');
+            
+            if (toastEl && toastBody) {
+                toastBody.textContent = message;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        }
         document.addEventListener('DOMContentLoaded', function() {
             // Generate passcode button handler
            document.querySelectorAll('.generate-passcode-btn').forEach(btn => {

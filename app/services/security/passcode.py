@@ -67,3 +67,43 @@ def gencode(student_id):
             'status': 'error',
             'message': str(e)
         }), 500
+    
+
+def getpasscode():
+    conn = db_connection()
+    try:
+        with conn.cursor() as cursor:  # Removed dictionary=True
+            cursor.execute("""
+                SELECT 
+                    student.id,
+                    student.name_or_alias,
+                    student.email,
+                    passcode.passcode,
+                    passcode.used
+                FROM students AS student
+                JOIN passcode ON student.id = passcode.stdId
+                WHERE passcode.used = 0
+            """)
+            results = cursor.fetchall()
+            
+            # Manually convert to dictionaries
+            passcodes_list = []
+            for row in results:
+                passcodes_list.append({
+                    'student_id': row[0],
+                    'name_or_alias': row[1],
+                    'email': row[2],
+                    'passcode': row[3],
+                    'used': row[4]
+                })
+            
+            return {
+                'status': 'success', 
+                'data': passcodes_list,
+                'count': len(passcodes_list)
+            }, None, 200
+
+    except Exception as db_error:
+        return None, f"Database error: {str(db_error)}", 500
+    finally:
+        conn.close()

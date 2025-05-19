@@ -8,7 +8,7 @@ import sys
 from app.services.auth.login import handle_login 
 from app.services.common.getters import get_baselines, get_submissions
 from app.services.student.submit import submit_baseline, getstudents
-from app.services.security.passcode import gencode 
+from app.services.security.passcode import gencode , getpasscode
 from flask_socketio import SocketIO
 from os.path import dirname, join
 
@@ -32,12 +32,12 @@ app = Flask(
     template_folder=TEMPLATE_DIR,
     static_folder=STATIC_DIR ,
 )
-socketio = SocketIO(app)
 load_dotenv()
 app.secret_key = 'prufia_user' 
 app.config['BASELINE_FOLDER'] = 'baseline'
 app.config['ASSIGNMENT_FOLDER'] = 'assignments'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'docx'}  
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 os.makedirs(app.config['BASELINE_FOLDER'], exist_ok=True)
 os.makedirs(app.config['ASSIGNMENT_FOLDER'], exist_ok=True)
@@ -62,6 +62,12 @@ def logout():
     return redirect(url_for('studentlogin'))
 
 
+
+@socketio.on('join-admin-room')
+def handle_join_admin_room():
+    if session.get('is_admin'):  # Add your admin verification logic
+        socketio.emit('admin-message', {'message': 'Admin connected'}, room='admins')
+        
 @app.route('/login', methods=['POST'])
 def login():
     result, status_code = handle_login()  
@@ -75,7 +81,7 @@ def login():
     socketio.emit('student-login', {
         'student_id': result['student_id'],
         'new_status': 'Used'
-    }, broadcast=True)
+    }, room='admins')
     return redirect(url_for('student'))
     
 
@@ -264,13 +270,11 @@ def handle_submit_baseline():
 # Admin management
 @app.route('/passcode')
 def passcode():
-    response, error, status_code = getstudents()
-    if response['status'] == 'success':
-        print("params===>", response)
-        return render_template('admin/passcode.html', students=response["data"])
-    else:
-        # handle error case if needed
-        return "Error fetching students", 500
+    response, error, status_code = getpasscode()
+    if error:
+        return f"Error fetching students: {error}", status_code
+        
+    return render_template('admin/passcode.html', students=response["data"])
 
 
 @app.route('/generate-passcode/<int:student_id>', methods=['POST'])
@@ -475,3 +479,5 @@ if __name__ == '__main__':
         debug=True,
         use_reloader=False  
     )
+# if __name__ == '__main__':
+#     socketio.run(app, debug=True)
