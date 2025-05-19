@@ -1,18 +1,11 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 import os
 import uuid
+import hashlib
 from werkzeug.utils import secure_filename
 from flask import render_template
 from dotenv import load_dotenv
-import sys
-from app.services.auth.login import handle_login 
-from app.services.common.getters import get_baselines, get_submissions
-from app.services.student.submit import submit_baseline, getstudents
-from app.services.security.passcode import gencode 
-from flask_socketio import SocketIO
-from os.path import dirname, join
-
-sys.path.append(join(dirname(__file__)))
+import pymysql
 
 from app.services.ai_engine.score import (
     detect_grammar_fixes_only,
@@ -32,13 +25,15 @@ app = Flask(
     template_folder=TEMPLATE_DIR,
     static_folder=STATIC_DIR ,
 )
-socketio = SocketIO(app)
+
 load_dotenv()
 app.secret_key = 'prufia_user' 
+# Configuration
 app.config['BASELINE_FOLDER'] = 'baseline'
 app.config['ASSIGNMENT_FOLDER'] = 'assignments'
-app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'docx'}  
+app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'docx'}  # Allowed file extensions
 
+# Ensure directories exist
 os.makedirs(app.config['BASELINE_FOLDER'], exist_ok=True)
 os.makedirs(app.config['ASSIGNMENT_FOLDER'], exist_ok=True)
 
@@ -47,6 +42,21 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+    
+def db_connection():    
+    try:
+        conn = pymysql.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME'),
+            port=3306,
+            # auth_plugin='mysql_native_password'
+        )
+        return conn
+    except pymysql.MySQLError as e:
+        print(f"Error connecting to MySQL: {e}")
+        raise
 
 @app.route('/')
 def home():
@@ -64,19 +74,31 @@ def logout():
 
 @app.route('/login', methods=['POST'])
 def login():
-    result, status_code = handle_login()  
-    
-    if status_code != 200: 
-        return render_template('studentlogin.html', error=result.get('error', 'Unknown error')), status_code
-    
-    session['student_id'] = result['student_id']
-    session['student_name'] = result['student_name']
-
-    socketio.emit('student-login', {
-        'student_id': result['student_id'],
-        'new_status': 'Used'
-    }, broadcast=True)
-    return redirect(url_for('student'))
+    name = request.form['name']
+    code = request.form['code']
+    conn = None
+    try:
+        conn = db_connection()
+        with conn.cursor() as cursor:
+            hashed_code = hashlib.sha256(code.encode()).hexdigest()    
+            cursor.execute("SELECT * FROM students WHERE name_or_alias=%s AND password_hash=%s", (name, hashed_code))
+            student = cursor.fetchone()  # Use fetchone() instead of fetchall()
+            
+            if student:  # If a student was found
+                session['student_id'] = student[0]
+                session['student_name'] = student[1]
+                return redirect(url_for('student'))
+            
+            # If no student found
+            return render_template('studentlogin.html', error='Invalid credentials')
+            
+    except Exception as e:
+        print(f"Login error: {e}")
+        return render_template('studentlogin.html', error='An error occurred during login')
+        
+    finally:
+        if conn:  # Only close connection if it was created
+            conn.close()
     
 
 
@@ -89,29 +111,50 @@ def student():
     if 'student_id' not in session:
         return redirect(url_for('studentlogin'))
     
-    submissions, error = get_submissions(session['student_id'])
-    
-    if error:
-        print(f"Error fetching submissions: {error}")
-        submissions = [] 
-    
+    student_id = session['student_id']
+    conn = db_connection()
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute(
+                "SELECT * FROM submissions WHERE student_id=%s ORDER BY created_at DESC",
+                (student_id,)
+            )
+            baselines = cursor.fetchall()  # Get all records
+            
+    except pymysql.MySQLError as e:
+        conn.rollback()
+        print(f"Database error: {str(e)}")  # Log the error
+        baselines = []
+    finally:
+        conn.close()
     return render_template(
-        'student.html',
+        'student.html', 
         student_name=session['student_name'],
-        baselines=submissions
+        baselines=baselines  # Pass all baselines to template
     )
 
 
 @app.route('/teacher')
 def teacher():
-    baselines, error = get_baselines()
-    if error:
-        return render_template('error.html', message=error), 500
-    
+    conn = db_connection()
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute(
+                "SELECT   s.id, s.student_id, st.name_or_alias,   s.baseline_1_path , s.baseline_2_path , s.created_at, s.submission_path, s.score_baseline_1, s.score_baseline_2, s.final_score, s.trust_flag, s.interpretation FROM submissions s JOIN students st ON s.student_id = st.id ORDER BY s.created_at DESC"
+            )
+            baselines = cursor.fetchall()  # Get all records
+            
+    except pymysql.MySQLError as e:
+        conn.rollback()
+        print(f"Database error: {str(e)}")  # Log the error
+        baselines = []
+    finally:
+        conn.close()
     return render_template(
         'teacher.html',
-        baselines=baselines if baselines else []
+        baselines=baselines 
     )
+
 
 @app.route('/analyze', methods=['POST']) 
 def analyze():
@@ -138,9 +181,10 @@ def analyze():
         baseline_dir = os.path.join(base_dir, 'baseline', student_id)
         teacher_dir = os.path.join(base_dir, 'assignments')
         
+        # Corrected file paths
         baseline_1_path = os.path.join(baseline_dir, f"{baseline_1}.txt")
         baseline_2_path = os.path.join(baseline_dir, f"{baseline_2}.txt")
-        teacher_path = os.path.join(teacher_dir, f"{tech}")  
+        teacher_path = os.path.join(teacher_dir, f"{tech}")  # Fixed
 
         try:
             with open(baseline_1_path, 'r') as f1, \
@@ -187,11 +231,13 @@ def analyze():
 
                 active_scores = {key: weights[key] for key in results if results[key] == 1}
                 
-                if results["major"]:  
-                    final_score = min(active_scores.values())  
+                if results["major"]:  # If major rewrite was detected
+                    final_score = min(active_scores.values())  # Take the lowest score
                 else:
+                    # Average the scores if no major rewrite
                     final_score = sum(active_scores.values()) / len(active_scores) if active_scores else 1.0
 
+                # Determine status
                 if final_score >= 0.9:
                     status = "Authorship Confirmed"
                     flag = "green"
@@ -205,6 +251,7 @@ def analyze():
                     status = "Authorship Mismatch"
                     flag = "red"
 
+                # Prepare the output
                 return jsonify({
                     "status": "success",
                     "score": int(final_score * 100),
@@ -239,102 +286,86 @@ def analyze():
         }), 500
     
 @app.route('/submit_baseline', methods=['POST'])
-def handle_submit_baseline():
-    """Endpoint to submit baseline writing samples"""
-    if 'student_id' not in session:
-        return jsonify({"error": "You must be logged in to submit baselines"}), 401
+def submit_baseline():
+    """Endpoint to submit baseline writing samples for a student"""
+    try:
+        # Check if user is logged in
+        if 'student_id' not in session:
+            return jsonify({"error": "You must be logged in to submit baselines"}), 401
 
-    client_ip = request.remote_addr
-    print(f"Request from IP: {client_ip}")
+        # Get student_id from session
+        student_id = str(session['student_id'])  # Convert to string if it's not already
+        student_name = session.get('student_name', 'Unknown')
 
-    result, error, status_code = submit_baseline(
-        student_id=session['student_id'],
-        student_name=session.get('student_name', 'Unknown'),
-        prompt1=request.form.get('prompt1', ''),
-        prompt2=request.form.get('prompt2', ''),
-        client_ip=client_ip
-    )
-    
-    if error:
-        return jsonify({"error": error}), status_code
-    
-    return jsonify(result), status_code
+        # Get form data
+        p1 = request.form.get('prompt1', '')
+
+        # typing_metrics = request.form.get('typing_metrics')
+        # print("typing_metrics===>", typing_metrics)
 
 
-# Admin management
-@app.route('/passcode')
-def passcode():
-    response, error, status_code = getstudents()
-    if response['status'] == 'success':
-        print("params===>", response)
-        return render_template('admin/passcode.html', students=response["data"])
-    else:
-        # handle error case if needed
-        return "Error fetching students", 500
+        p2 = request.form.get('prompt2', '')
+        
+        if not p1 or not p2:
+            return jsonify({"error": "Both prompts are required"}), 400
 
+        # Create student folder
+        folder = os.path.join(app.config['BASELINE_FOLDER'], student_id)
+        os.makedirs(folder, exist_ok=True)
+        
+        # Generate unique filenames
+        uuid_obj = uuid.uuid4()
+        first_part = uuid_obj.hex[:8]      # "5e2a1155"
+        second_part = uuid_obj.hex[8:12]   # "5a6e"
+        result = f"{first_part}-{second_part}"
 
-@app.route('/generate-passcode/<int:student_id>', methods=['POST'])
-def generate_passcode(student_id):
-    return gencode(student_id)
+        p1_filename = f"{result}.txt"
+        
+        uuid_obj = uuid.uuid4()
+        first_part = uuid_obj.hex[:8]      # "5e2a1155"
+        second_part = uuid_obj.hex[8:12]   # "5a6e"
+        result = f"{first_part}-{second_part}"
+        p2_filename = f"{result}.txt"
+        
+        # Save prompts
+        p1_path = os.path.join(folder, p1_filename)
+        p2_path = os.path.join(folder, p2_filename)
+        
+        with open(p1_path, 'w') as f:
+            f.write(p1)
+        with open(p2_path, 'w') as f:
+            f.write(p2)
 
-@app.route('/semesters')
-def manage_semesters():
-    # Sample data - in production you'd query the database
-    sample_semesters = [
-        {
-            'id': '2025-Spring',
-            'name': 'Spring 2025',
-            'start_date': '2025-01-15',
-            'end_date': '2025-05-20',
-            'is_active': True,
-            'student_count': 42,
-            'teacher_count': 5
-        },
-        {
-            'id': '2024-Fall',
-            'name': 'Fall 2024',
-            'start_date': '2024-08-20',
-            'end_date': '2024-12-15',
-            'is_active': False,
-            'student_count': 38,
-            'teacher_count': 4
-        },
-        {
-            'id': '2024-Summer',
-            'name': 'Summer 2024',
-            'start_date': '2024-06-01',
-            'end_date': '2024-08-10',
-            'is_active': False,
-            'student_count': 22,
-            'teacher_count': 3
-        }
-    ]
-    return render_template('admin/semesters.html', semesters=sample_semesters)
-
-@app.route('/semester/<semester_id>')
-def semester_details(semester_id):
-    # Sample data - replace with DB query in production
-    sample_data = {
-        'id': semester_id,
-        'name': 'Spring 2025' if 'Spring' in semester_id else 'Fall 2024',
-        'start_date': '2025-01-15',
-        'end_date': '2025-05-20',
-        'is_active': True,
-        'description': 'Main academic semester for undergraduate programs',
-        'students': [
-            {'id': 101, 'name': 'Alice Johnson', 'email': 'alice@example.com'},
-            {'id': 102, 'name': 'Bob Smith', 'email': 'bob@example.com'}
-        ],
-        'teachers': [
-            {'id': 201, 'name': 'Dr. Sarah Chen', 'email': 'sarah@example.com'},
-            {'id': 202, 'name': 'Prof. David Kim', 'email': 'david@example.com'}
-        ],
-        'assignments': [
-            {'id': 301, 'name': 'Baseline Assessment', 'due_date': '2025-02-01'},
-            {'id': 302, 'name': 'Midterm Project', 'due_date': '2025-03-15'}
-        ]
-    }
-    return render_template('admin/semester_details.html', semester=sample_data)
+        # Database operations
+        conn = db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # Insert first baseline sample
+                cursor.execute(
+                    "INSERT INTO submissions (student_id, baseline_1_path, baseline_2_path, semester_id) VALUES (%s, %s, %s, %s)",
+                    (student_id, p1_path, p2_path,"2025-Pilot")
+                )  
+                print("insert success!")
+                conn.commit()
+                
+        except pymysql.MySQLError as e:
+            conn.rollback()
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
+        finally:
+            conn.close()
+            
+        return jsonify({
+            "status": "success",
+            "message": f"Baseline saved for {student_name}",
+            "student_id": student_id,
+            "file_paths": {
+                "prompt1": p1_path,
+                "prompt2": p2_path
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/upload_assignments', methods=['POST'])
 def upload_assignments():
@@ -353,8 +384,10 @@ def upload_assignments():
             filename = secure_filename(file.filename)
             prefix = filename.split('_')[0]
             
+            # Find best matching student (mock implementation)
             match = find_best_match(prefix, app.config['BASELINE_FOLDER'])
             
+            # Save to appropriate folder
             folder_path = os.path.join(
                 app.config['ASSIGNMENT_FOLDER']
             )
@@ -364,10 +397,12 @@ def upload_assignments():
             file_path = os.path.join(folder_path, unique_filename)
             file.save(file_path)
             
+            # Calculate score if matched
             if match:
                 baseline_path = os.path.join(app.config['BASELINE_FOLDER'], match)
                 score = calculate_combined_score(baseline_path, file_path)
                 
+                # Determine interpretation
                 if score >= 0.85:
                     label = "Strong Match"
                 elif score >= 0.70:
@@ -436,12 +471,17 @@ def manual_match():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Mock implementations for the scoring and matching functions
 def calculate_combined_score(baseline_path, submission_path):
     """Calculate a combined similarity score between baseline and submission"""
+    # In a real implementation, this would compare writing styles
+    # For now, return a mock score between 0 and 1
     return 100*round(0.5 + (hash(submission_path) % 5000) / 10000, 4)
 
 def find_best_match(prefix, baseline_folder):
     """Find the best matching student ID for a given prefix"""
+    # In a real implementation, this would use fuzzy matching
+    # For now, just return the first student ID that starts with the prefix
     try:
         for student_id in os.listdir(baseline_folder):
             if student_id.startswith(prefix):
@@ -455,6 +495,7 @@ def run_server():
         port = int(os.environ.get('PORT', 5000))
         host = os.environ.get('HOST', '0.0.0.0')
         
+        # Try multiple ports if default is unavailable
         for p in [port, port + 1, port + 2]:
             try:
                 app.run(host=host, port=p, debug=True)
@@ -466,12 +507,12 @@ def run_server():
                 raise
     except Exception as e:
         print(f"Server failed: {str(e)}")
+        # Additional error handling/logging here
 
 if __name__ == '__main__':     
-    socketio.run(
-        app,
+    app.run(
         host='0.0.0.0',
         port=5000,
         debug=True,
-        use_reloader=False  
+        use_reloader=False  # This prevents the socket error
     )

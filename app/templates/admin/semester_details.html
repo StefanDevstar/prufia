@@ -1,0 +1,163 @@
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Semester: {{ semester.name }}</h1>
+        <span class="badge {{ 'badge-success' if semester.is_active else 'badge-secondary' }}">
+            {{ 'Active' if semester.is_active else 'Archived' }}
+        </span>
+    </div>
+
+    <!-- Basic Info Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Semester Information</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Semester ID:</strong> {{ semester.id }}</p>
+                    <p><strong>Duration:</strong> {{ semester.start_date }} to {{ semester.end_date }}</p>
+                    <p><strong>Description:</strong> {{ semester.description }}</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Statistics</h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="card border-left-primary shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Students
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ semester.students|length }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card border-left-success shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Teachers
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ semester.teachers|length }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Enrolled Students</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in semester.students %}
+                        <tr>
+                            <td>{{ student.id }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-info">View</a>
+                                <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teachers Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Assigned Teachers</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Teacher ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in semester.teachers %}
+                        <tr>
+                            <td>{{ teacher.id }}</td>
+                            <td>{{ teacher.name }}</td>
+                            <td>{{ teacher.email }}</td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-info">View</a>
+                                <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignments Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Semester Assignments</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Assignment ID</th>
+                            <th>Name</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in semester.assignments %}
+                        <tr>
+                            <td>{{ assignment.id }}</td>
+                            <td>{{ assignment.name }}</td>
+                            <td>{{ assignment.due_date }}</td>
+                            <td>
+                                <span class="badge badge-success">Active</span>
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-info">View Submissions</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4">Semester Management</h1>
+    
+    <!-- Create Semester Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-plus-circle mr-1"></i>
+            Create New Semester
+        </div>
+        <div class="card-body">
+         
+            <div>
+                <div class="form-row">
+                    <div class="form-group col-md-3">
+                        <label for="semester_id">Semester ID</label>
+                        <input type="text" class="form-control" id="semester_id" name="semester_id" 
+                               placeholder="2025-Spring" required>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="name">Semester Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Spring 2025" required>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="end_date">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+                </div>
+                <button  class="btn btn-primary">
+                    <i class="fas fa-save mr-1"></i> Create Semester
+                </button>
+            </div>
+        
+        </div>
+    </div>
+
+    <!-- Current Semesters Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <i class="fas fa-calendar-alt mr-1"></i>
+            Active Semesters
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Semester ID</th>
+                            <th>Name</th>
+                            <th>Duration</th>
+                            <th>Participants</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for semester in semesters if semester.is_active %}
+                        <tr>
+                            <td>{{ semester.id }}</td>
+                            <td>{{ semester.name }}</td>
+                            <td>{{ semester.start_date }} to {{ semester.end_date }}</td>
+                            <td>
+                                <span class="badge badge-pill badge-info">
+                                    {{ semester.student_count }} Students
+                                </span>
+                                <span class="badge badge-pill badge-secondary ml-2">
+                                    {{ semester.teacher_count }} Teachers
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-success">Active</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('semester_details', semester_id=semester.id) }}" 
+                                   class="btn btn-sm btn-info mr-2">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </a>
+                                <div
+                                      class="d-inline">
+                                    <button  class="btn btn-sm btn-warning">
+                                        <i class="fas fa-lock"></i> Close Semester
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No active semesters</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Semesters Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <i class="fas fa-archive mr-1"></i>
+            Archived Semesters
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Semester ID</th>
+                            <th>Name</th>
+                            <th>Duration</th>
+                            <th>Participants</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for semester in semesters if not semester.is_active %}
+                        <tr>
+                            <td>{{ semester.id }}</td>
+                            <td>{{ semester.name }}</td>
+                            <td>{{ semester.start_date }} to {{ semester.end_date }}</td>
+                            <td>
+                                <span class="badge badge-pill badge-info">
+                                    {{ semester.student_count }} Students
+                                </span>
+                                <span class="badge badge-pill badge-secondary ml-2">
+                                    {{ semester.teacher_count }} Teachers
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">Archived</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('semester_details', semester_id=semester.id) }}" 
+                                   class="btn btn-sm btn-info mr-2">
+                                    <i class="fas fa-info-circle"></i> View
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download"></i> Export Data
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No archived semesters</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

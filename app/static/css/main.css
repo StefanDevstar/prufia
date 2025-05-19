@@ -604,3 +604,322 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
                 gap: 10px;
             }
         }
+
+
+
+
+        /* Main Container Styles */
+.container-fluid {
+    padding: 20px;
+}
+
+/* Card Styles */
+.card {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    padding: 1rem 1.35rem;
+    background-color: #f8f9fc;
+    border-bottom: none;
+}
+
+.card-header.bg-primary {
+    background-color: #4e73df !important;
+}
+
+.card-header.bg-success {
+    background-color: #1cc88a !important;
+}
+
+.card-header.bg-secondary {
+    background-color: #858796 !important;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* Table Styles */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #5a5c69;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #e3e6f0;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #4e73df;
+    padding: 1rem;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #e3e6f0;
+}
+
+.table-hover tbody tr:hover {
+    color: #5a5c69;
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.75em;
+    font-weight: 700;
+    padding: 0.35em 0.65em;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-pill {
+    padding-right: 0.6em;
+    padding-left: 0.6em;
+    border-radius: 10rem;
+}
+
+.badge-info {
+    background-color: #36b9cc;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #858796;
+    color: white;
+}
+
+.badge-success {
+    background-color: #1cc88a;
+    color: white;
+}
+
+/* Button Styles */
+.btn {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    transition: all 0.15s ease;
+}
+
+.btn-sm {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2653d4;
+}
+
+.btn-warning {
+    background-color: #f6c23e;
+    border-color: #f6c23e;
+    color: #1f2d3d;
+}
+
+.btn-warning:hover {
+    background-color: #f4b619;
+    border-color: #f4b30d;
+    color: #1f2d3d;
+}
+
+.btn-info {
+    background-color: #36b9cc;
+    border-color: #36b9cc;
+}
+
+.btn-info:hover {
+    background-color: #2c9faf;
+    border-color: #2a96a5;
+}
+
+.btn-outline-secondary {
+    color: #858796;
+    border-color: #858796;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #858796;
+    border-color: #858796;
+}
+
+/* Form Styles */
+.form-control {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #6e707e;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    color: #6e707e;
+    background-color: #fff;
+    border-color: #bac8f3;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -5px;
+    margin-left: -5px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Icon Styles */
+.fas {
+    margin-right: 5px;
+}
+
+/* Text Styles */
+.text-center {
+    text-align: center;
+}
+
+/* Margin Utilities */
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+.mr-1 {
+    margin-right: 0.25rem !important;
+}
+
+.mr-2 {
+    margin-right: 0.5rem !important;
+}
+
+.ml-2 {
+    margin-left: 0.5rem !important;
+}
+
+
+/* Custom Card Header Styles */
+.card-header {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Hover Effects */
+.btn {
+    transition: all 0.2s ease;
+    transform: translateY(0);
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Table Row Highlight */
+.table-hover tbody tr {
+    transition: all 0.15s ease;
+}
+
+.table-hover tbody tr:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Form Validation */
+.was-validated .form-control:valid {
+    border-color: #1cc88a;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath fill='%231cc88a' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.was-validated .form-control:invalid {
+    border-color: #e74a3b;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23e74a3b' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23e74a3b' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Date Input Customization */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+}
+
+/* Badge Enhancements */
+.badge {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
