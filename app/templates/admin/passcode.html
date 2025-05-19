@@ -29,9 +29,9 @@
                 <h5 class="mb-0">Students List</h5>
                 <div>
                     <span id="socket-status" class="badge bg-secondary">Connecting...</span>
-                    <a href="/admin/add-student" class="btn btn-sm btn-primary ms-2">
-                        <i class="bi bi-plus-circle"></i> Add Student
-                    </a>
+                    <button id="resetAllBtn" class="btn btn-sm btn-warning ms-2">
+                        <i class="bi bi-arrow-repeat"></i> Reset All Passcodes
+                    </button>
                 </div>
             </div>
             
@@ -235,8 +235,76 @@
                 }
             });
         });
+
+        document.getElementById('resetAllBtn')?.addEventListener('click', async function() {
+            const btn = this;
+            
+            // Confirm action first
+            if (!confirm('Are you sure you want to reset ALL passcodes?')) {
+                return;
+            }
+            
+            // Set loading state
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Resetting...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/reset', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken() // Add if using CSRF protection
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to reset passcodes');
+                }
+                
+                // Show success notification
+                showNotification(`Successfully reset ${data.affected_rows || 0} passcodes`);
+                
+                // Refresh the page after a short delay to show the notification
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Reset error:', error);
+                showNotification(error.message || 'Error resetting passcodes', 'danger');
+            } finally {
+                // Reset button state (though page will reload on success)
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Reset All Passcodes';
+                btn.disabled = false;
+            }
+        });
+
+        // Helper function for notifications
+        function showNotificationreset(message, type = 'success') {
+            const toastEl = document.getElementById('notificationToast');
+            const toastBody = document.getElementById('toastMessage');
+            
+            if (toastEl && toastBody) {
+                // Update toast appearance based on type
+                const toastHeader = toastEl.querySelector('.toast-header');
+                toastHeader.className = `toast-header bg-${type} text-white`;
+                
+                // Set message
+                toastBody.textContent = message;
+                
+                // Show toast
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        }
+
+        // CSRF helper function (if needed)
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
         
-        // Copy to clipboard button
         document.getElementById('copyPasscodeBtn')?.addEventListener('click', function() {
             const passcode = document.getElementById('generatedPasscode').textContent;
             navigator.clipboard.writeText(passcode).then(() => {

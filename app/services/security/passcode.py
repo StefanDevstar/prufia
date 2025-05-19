@@ -82,7 +82,6 @@ def getpasscode():
                     passcode.used
                 FROM students AS student
                 JOIN passcode ON student.id = passcode.stdId
-                WHERE passcode.used = 0
             """)
             results = cursor.fetchall()
             
@@ -107,3 +106,53 @@ def getpasscode():
         return None, f"Database error: {str(db_error)}", 500
     finally:
         conn.close()
+
+
+def handle_reset_all_passcode(student_id=None):
+    """
+    Reset passcode usage status
+    Args:
+        student_id: Specific student ID or None for all passcodes
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    conn = None
+    try:
+        conn = db_connection()
+        with conn.cursor() as cursor:
+            if student_id:
+                cursor.execute(
+                    "UPDATE passcode SET used=0 WHERE stdId=%s",
+                    (student_id,)
+                )
+                message = f"Passcode reset for student {student_id}"
+            else:
+                # Reset all passcodes
+                cursor.execute("UPDATE passcode SET used=0")
+                message = "All passcodes reset"
+            
+            affected_rows = cursor.rowcount
+            conn.commit()
+            
+            if affected_rows == 0:
+                return {"status": "error", "message": "No passcodes found to reset"}, 404
+            
+            return {
+                "status": "success",
+                "message": message,
+                "affected_rows": affected_rows
+            }, 200
+    
+    except Exception as e:
+        print(f"Error resetting passcode: {e}")
+        if conn:
+            conn.rollback()
+        return {
+            "status": "error",
+            "message": "Failed to reset passcode",
+            "error": str(e)
+        }, 500
+    
+    finally:
+        if conn:
+            conn.close()

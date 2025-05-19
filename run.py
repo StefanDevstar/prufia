@@ -8,7 +8,7 @@ import sys
 from app.services.auth.login import handle_login 
 from app.services.common.getters import get_baselines, get_submissions
 from app.services.student.submit import submit_baseline, getstudents
-from app.services.security.passcode import gencode , getpasscode
+from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
 from flask_socketio import SocketIO
 from os.path import dirname, join
 
@@ -52,15 +52,6 @@ def allowed_file(filename):
 def home():
     return render_template('index.html')
 
-@app.route('/student-login')
-def studentlogin():    
-    return render_template('studentlogin.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('studentlogin'))
-
 
 
 @socketio.on('join-admin-room')
@@ -70,6 +61,104 @@ def handle_join_admin_room():
     print(f"Admin joined admin-room")      
 
 
+
+
+
+
+
+#Admin routes
+@app.route('/passcode')
+def passcode():
+    response, error, status_code = getpasscode()
+    if error:
+        return f"Error fetching students: {error}", status_code
+        
+    return render_template('admin/passcode.html', students=response["data"])
+
+@app.route('/generate-passcode/<int:student_id>', methods=['POST'])
+def generate_passcode(student_id):
+    return gencode(student_id)
+
+@app.route('/semesters')
+def manage_semesters():
+    # Sample data - in production you'd query the database
+    sample_semesters = [
+        {
+            'id': '2025-Spring',
+            'name': 'Spring 2025',
+            'start_date': '2025-01-15',
+            'end_date': '2025-05-20',
+            'is_active': True,
+            'student_count': 42,
+            'teacher_count': 5
+        },
+        {
+            'id': '2024-Fall',
+            'name': 'Fall 2024',
+            'start_date': '2024-08-20',
+            'end_date': '2024-12-15',
+            'is_active': False,
+            'student_count': 38,
+            'teacher_count': 4
+        },
+        {
+            'id': '2024-Summer',
+            'name': 'Summer 2024',
+            'start_date': '2024-06-01',
+            'end_date': '2024-08-10',
+            'is_active': False,
+            'student_count': 22,
+            'teacher_count': 3
+        }
+    ]
+    return render_template('admin/semesters.html', semesters=sample_semesters)
+
+@app.route('/semester/<semester_id>')
+def semester_details(semester_id):
+    sample_data = {
+        'id': semester_id,
+        'name': 'Spring 2025' if 'Spring' in semester_id else 'Fall 2024',
+        'start_date': '2025-01-15',
+        'end_date': '2025-05-20',
+        'is_active': True,
+        'description': 'Main academic semester for undergraduate programs',
+        'students': [
+            {'id': 101, 'name': 'Alice Johnson', 'email': 'alice@example.com'},
+            {'id': 102, 'name': 'Bob Smith', 'email': 'bob@example.com'}
+        ],
+        'teachers': [
+            {'id': 201, 'name': 'Dr. Sarah Chen', 'email': 'sarah@example.com'},
+            {'id': 202, 'name': 'Prof. David Kim', 'email': 'david@example.com'}
+        ],
+        'assignments': [
+            {'id': 301, 'name': 'Baseline Assessment', 'due_date': '2025-02-01'},
+            {'id': 302, 'name': 'Midterm Project', 'due_date': '2025-03-15'}
+        ]
+    }
+    return render_template('admin/semester_details.html', semester=sample_data)
+
+@app.route('/reset', methods=['POST'])  # Should be POST for state-changing operations
+def reset():
+    response, status_code = handle_reset_all_passcode()
+    print("response:", response)
+    
+    if status_code == 200:       
+        socketio.emit('reset-passcode', {
+            'status': 'success',
+            'message': response['message'],
+            'affected_rows': response['affected_rows'],
+        }, room='admin-room', namespace='/admin')
+    
+    return jsonify(response), status_code
+    
+
+
+
+
+
+
+
+#Student routes
 @app.route('/login', methods=['POST'])
 def login():
     result, status_code = handle_login()  
@@ -90,12 +179,6 @@ def login():
     
     print("Event emitted successfully")
     return redirect(url_for('student'))
-    
-
-
-@app.route('/teacher-login')
-def teacherlogin():
-    return render_template('teacherlogin.html')
 
 @app.route('/student')
 def student():
@@ -114,6 +197,42 @@ def student():
         baselines=submissions
     )
 
+@app.route('/student-login')
+def studentlogin():    
+    return render_template('studentlogin.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('studentlogin'))
+
+@app.route('/submit_baseline', methods=['POST'])
+def handle_submit_baseline():
+    """Endpoint to submit baseline writing samples"""
+    if 'student_id' not in session:
+        return jsonify({"error": "You must be logged in to submit baselines"}), 401
+
+    client_ip = request.remote_addr
+    print(f"Request from IP: {client_ip}")
+
+    result, error, status_code = submit_baseline(
+        student_id=session['student_id'],
+        student_name=session.get('student_name', 'Unknown'),
+        prompt1=request.form.get('prompt1', ''),
+        prompt2=request.form.get('prompt2', ''),
+        client_ip=client_ip
+    )
+    
+    if error:
+        return jsonify({"error": error}), status_code
+    
+    return jsonify(result), status_code
+
+
+#Teacher routes
+@app.route('/teacher-login')
+def teacherlogin():
+    return render_template('teacherlogin.html')
 
 @app.route('/teacher')
 def teacher():
@@ -125,6 +244,106 @@ def teacher():
         'teacher.html',
         baselines=baselines if baselines else []
     )
+
+@app.route('/upload_assignments', methods=['POST'])
+def upload_assignments():
+    """Endpoint to upload assignments and automatically match with baselines"""
+    results = {}
+    
+    if 'files' not in request.files:
+        return jsonify({"error": "No files provided"}), 400
+        
+    files = request.files.getlist('files')
+    if not files or all(file.filename == '' for file in files):
+        return jsonify({"error": "No selected files"}), 400
+    
+    for file in files:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            prefix = filename.split('_')[0]
+            
+            match = find_best_match(prefix, app.config['BASELINE_FOLDER'])
+            
+            folder_path = os.path.join(
+                app.config['ASSIGNMENT_FOLDER']
+            )
+            os.makedirs(folder_path, exist_ok=True)
+            
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            file_path = os.path.join(folder_path, unique_filename)
+            file.save(file_path)
+            
+            if match:
+                baseline_path = os.path.join(app.config['BASELINE_FOLDER'], match)
+                score = calculate_combined_score(baseline_path, file_path)
+                
+                if score >= 0.85:
+                    label = "Strong Match"
+                elif score >= 0.70:
+                    label = "Moderate Match"
+                elif score >= 0.50:
+                    label = "Weak Match"
+                else:
+                    label = "Very Low Match"
+                    
+                results[filename] = {
+                    'student_id': match,
+                    'score': round(score, 4),
+                    'interpretation': label,
+                    'saved_path': file_path
+                }
+            else:
+                results = {
+                    'student_id': 'Unmatched',
+                    'score': 'N/A',
+                    'interpretation': 'Manual Match Required',
+                    'saved_path': file_path
+                }
+        else:
+            results[file.filename] = {
+                'error': 'Invalid file type',
+                'allowed_types': list(app.config['ALLOWED_EXTENSIONS'])
+            }
+    
+    return jsonify(results)
+
+@app.route('/manual_match', methods=['POST'])
+def manual_match():
+    """Endpoint for manually matching assignments to students"""
+    try:
+        name = request.form.get('file_name')
+        sid = request.form.get('student_id')
+        
+        if not name or not sid:
+            return jsonify({"error": "Both file_name and student_id are required"}), 400
+            
+        unmatched_path = os.path.join(app.config['ASSIGNMENT_FOLDER'])
+        file_path = None
+        
+        for root, dirs, files in os.walk(unmatched_path):
+            if name in files:
+                file_path = os.path.join(root, name)
+                break
+        if not file_path:
+            return jsonify({"error": "File not found in unmatched directory"}), 404
+        base_path = os.path.join(app.config['BASELINE_FOLDER'], sid)
+        if not os.path.exists(base_path):
+            return jsonify({"error": "Student baseline not found"}), 404
+        student_folder = os.path.join(app.config['ASSIGNMENT_FOLDER'], sid)
+        os.makedirs(student_folder, exist_ok=True)
+        new_path = os.path.join(student_folder, name)
+        os.rename(file_path, new_path)
+        score = calculate_combined_score(base_path, new_path)
+        
+        return jsonify({
+            'status': 'success',
+            'student_id': sid,
+            'score': round(score, 4),
+            'file_path': new_path
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/analyze', methods=['POST']) 
 def analyze():
@@ -251,201 +470,6 @@ def analyze():
             "message": f"Server error: {str(e)}"
         }), 500
     
-@app.route('/submit_baseline', methods=['POST'])
-def handle_submit_baseline():
-    """Endpoint to submit baseline writing samples"""
-    if 'student_id' not in session:
-        return jsonify({"error": "You must be logged in to submit baselines"}), 401
-
-    client_ip = request.remote_addr
-    print(f"Request from IP: {client_ip}")
-
-    result, error, status_code = submit_baseline(
-        student_id=session['student_id'],
-        student_name=session.get('student_name', 'Unknown'),
-        prompt1=request.form.get('prompt1', ''),
-        prompt2=request.form.get('prompt2', ''),
-        client_ip=client_ip
-    )
-    
-    if error:
-        return jsonify({"error": error}), status_code
-    
-    return jsonify(result), status_code
-
-
-# Admin management
-@app.route('/passcode')
-def passcode():
-    response, error, status_code = getpasscode()
-    if error:
-        return f"Error fetching students: {error}", status_code
-        
-    return render_template('admin/passcode.html', students=response["data"])
-
-
-@app.route('/generate-passcode/<int:student_id>', methods=['POST'])
-def generate_passcode(student_id):
-    return gencode(student_id)
-
-@app.route('/semesters')
-def manage_semesters():
-    # Sample data - in production you'd query the database
-    sample_semesters = [
-        {
-            'id': '2025-Spring',
-            'name': 'Spring 2025',
-            'start_date': '2025-01-15',
-            'end_date': '2025-05-20',
-            'is_active': True,
-            'student_count': 42,
-            'teacher_count': 5
-        },
-        {
-            'id': '2024-Fall',
-            'name': 'Fall 2024',
-            'start_date': '2024-08-20',
-            'end_date': '2024-12-15',
-            'is_active': False,
-            'student_count': 38,
-            'teacher_count': 4
-        },
-        {
-            'id': '2024-Summer',
-            'name': 'Summer 2024',
-            'start_date': '2024-06-01',
-            'end_date': '2024-08-10',
-            'is_active': False,
-            'student_count': 22,
-            'teacher_count': 3
-        }
-    ]
-    return render_template('admin/semesters.html', semesters=sample_semesters)
-
-@app.route('/semester/<semester_id>')
-def semester_details(semester_id):
-    # Sample data - replace with DB query in production
-    sample_data = {
-        'id': semester_id,
-        'name': 'Spring 2025' if 'Spring' in semester_id else 'Fall 2024',
-        'start_date': '2025-01-15',
-        'end_date': '2025-05-20',
-        'is_active': True,
-        'description': 'Main academic semester for undergraduate programs',
-        'students': [
-            {'id': 101, 'name': 'Alice Johnson', 'email': 'alice@example.com'},
-            {'id': 102, 'name': 'Bob Smith', 'email': 'bob@example.com'}
-        ],
-        'teachers': [
-            {'id': 201, 'name': 'Dr. Sarah Chen', 'email': 'sarah@example.com'},
-            {'id': 202, 'name': 'Prof. David Kim', 'email': 'david@example.com'}
-        ],
-        'assignments': [
-            {'id': 301, 'name': 'Baseline Assessment', 'due_date': '2025-02-01'},
-            {'id': 302, 'name': 'Midterm Project', 'due_date': '2025-03-15'}
-        ]
-    }
-    return render_template('admin/semester_details.html', semester=sample_data)
-
-@app.route('/upload_assignments', methods=['POST'])
-def upload_assignments():
-    """Endpoint to upload assignments and automatically match with baselines"""
-    results = {}
-    
-    if 'files' not in request.files:
-        return jsonify({"error": "No files provided"}), 400
-        
-    files = request.files.getlist('files')
-    if not files or all(file.filename == '' for file in files):
-        return jsonify({"error": "No selected files"}), 400
-    
-    for file in files:
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            prefix = filename.split('_')[0]
-            
-            match = find_best_match(prefix, app.config['BASELINE_FOLDER'])
-            
-            folder_path = os.path.join(
-                app.config['ASSIGNMENT_FOLDER']
-            )
-            os.makedirs(folder_path, exist_ok=True)
-            
-            unique_filename = f"{uuid.uuid4()}_{filename}"
-            file_path = os.path.join(folder_path, unique_filename)
-            file.save(file_path)
-            
-            if match:
-                baseline_path = os.path.join(app.config['BASELINE_FOLDER'], match)
-                score = calculate_combined_score(baseline_path, file_path)
-                
-                if score >= 0.85:
-                    label = "Strong Match"
-                elif score >= 0.70:
-                    label = "Moderate Match"
-                elif score >= 0.50:
-                    label = "Weak Match"
-                else:
-                    label = "Very Low Match"
-                    
-                results[filename] = {
-                    'student_id': match,
-                    'score': round(score, 4),
-                    'interpretation': label,
-                    'saved_path': file_path
-                }
-            else:
-                results = {
-                    'student_id': 'Unmatched',
-                    'score': 'N/A',
-                    'interpretation': 'Manual Match Required',
-                    'saved_path': file_path
-                }
-        else:
-            results[file.filename] = {
-                'error': 'Invalid file type',
-                'allowed_types': list(app.config['ALLOWED_EXTENSIONS'])
-            }
-    
-    return jsonify(results)
-
-@app.route('/manual_match', methods=['POST'])
-def manual_match():
-    """Endpoint for manually matching assignments to students"""
-    try:
-        name = request.form.get('file_name')
-        sid = request.form.get('student_id')
-        
-        if not name or not sid:
-            return jsonify({"error": "Both file_name and student_id are required"}), 400
-            
-        unmatched_path = os.path.join(app.config['ASSIGNMENT_FOLDER'])
-        file_path = None
-        
-        for root, dirs, files in os.walk(unmatched_path):
-            if name in files:
-                file_path = os.path.join(root, name)
-                break
-        if not file_path:
-            return jsonify({"error": "File not found in unmatched directory"}), 404
-        base_path = os.path.join(app.config['BASELINE_FOLDER'], sid)
-        if not os.path.exists(base_path):
-            return jsonify({"error": "Student baseline not found"}), 404
-        student_folder = os.path.join(app.config['ASSIGNMENT_FOLDER'], sid)
-        os.makedirs(student_folder, exist_ok=True)
-        new_path = os.path.join(student_folder, name)
-        os.rename(file_path, new_path)
-        score = calculate_combined_score(base_path, new_path)
-        
-        return jsonify({
-            'status': 'success',
-            'student_id': sid,
-            'score': round(score, 4),
-            'file_path': new_path
-        })
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 def calculate_combined_score(baseline_path, submission_path):
     """Calculate a combined similarity score between baseline and submission"""
@@ -460,6 +484,8 @@ def find_best_match(prefix, baseline_folder):
     except FileNotFoundError:
         pass
     return None
+
+# -----------------------End routes-----------------------
 
 def run_server():
     try:
