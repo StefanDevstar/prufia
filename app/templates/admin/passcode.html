@@ -108,7 +108,25 @@
             </div>
         </div>
     </div>
-
+    <!-- Custom Confirm Modal -->
+    <div class="modal fade" id="confirmGenerateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Passcode Generation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to generate a new passcode for student <strong id="confirmStudentId"></strong>?</p>
+                    <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> This will invalidate any existing passcode.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmGenerateBtn">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Notification Toast -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -184,58 +202,81 @@
         
         // Generate passcode button handler
         document.querySelectorAll('.generate-passcode-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', function() {
                 const studentId = this.getAttribute('data-student-id');
-                const btn = this;
-                const passcodeCell = document.getElementById(`passcode-${studentId}`);
-                const statusCell = document.getElementById(`use-status-${studentId}`);
                 
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
-                btn.disabled = true;
+                // Set the student ID in the confirmation modal
+                document.getElementById('confirmStudentId').textContent = studentId;
                 
-                try {
-                    const response = await fetch(`/generate-passcode/${studentId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    
-                    const data = await response.json();
-                    const now = new Date();
-                    
-                    if (data.status === 'success') {
-                        passcodeCell.innerHTML = `
-                            <code>${data.passcode}</code>
-                            <div class="text-success small">Generated: ${now.toLocaleString()}</div>
-                        `;
-                        
-                        if (statusCell) {
-                            statusCell.innerHTML = `
-                                <span class="badge bg-success">Active</span>
-                                <small class="text-muted">Not used yet</small>
-                            `;
-                        }
-                        
-                        // Show modal with new passcode
-                        document.getElementById('studentName').textContent = studentId;
-                        document.getElementById('generatedPasscode').textContent = data.passcode;
-                        document.getElementById('passcodeExpires').textContent = 
-                            new Date(data.expires_at).toLocaleString();
-                        
-                        const modal = new bootstrap.Modal(document.getElementById('passcodeModal'));
-                        modal.show();
-                    } else {
-                        showNotification(`Error: ${data.message || 'Failed to generate passcode'}`);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    showNotification('Failed to generate passcode');
-                } finally {
-                    btn.innerHTML = '<i class="bi bi-key"></i> Generate';
-                    btn.disabled = false;
-                }
+                // Show the confirmation modal
+                const confirmModal = new bootstrap.Modal(document.getElementById('confirmGenerateModal'));
+                confirmModal.show();
+                
+                // Store the button reference for later use
+                document.getElementById('confirmGenerateBtn').dataset.studentId = studentId;
+                document.getElementById('confirmGenerateBtn').dataset.originalButton = this;
             });
         });
 
+        // Confirm generate button handler
+        document.getElementById('confirmGenerateBtn').addEventListener('click', async function() {
+            const studentId = this.dataset.studentId;
+            const originalButton = this.dataset.originalButton;
+            const passcodeCell = document.getElementById(`passcode-${studentId}`);
+            const statusCell = document.getElementById(`use-status-${studentId}`);
+            
+            // Close the confirmation modal
+            const confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmGenerateModal'));
+            confirmModal.hide();
+            
+            // Set loading state on original button
+            originalButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            originalButton.disabled = true;
+            
+            try {
+                const response = await fetch(`/generate-passcode/${studentId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                const now = new Date();
+                
+                if (data.status === 'success') {
+                    passcodeCell.innerHTML = `
+                        <code>${data.passcode}</code>
+                        <div class="text-success small">Generated: ${now.toLocaleString()}</div>
+                    `;
+                    
+                    if (statusCell) {
+                        statusCell.innerHTML = `
+                            <span class="badge bg-success">Active</span>
+                            <small class="text-muted">Not used yet</small>
+                        `;
+                    }
+                    
+                    // Show modal with new passcode
+                    document.getElementById('studentName').textContent = studentId;
+                    document.getElementById('generatedPasscode').textContent = data.passcode;
+                    document.getElementById('passcodeExpires').textContent = 
+                        new Date(data.expires_at).toLocaleString();
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('passcodeModal'));
+                    modal.show();
+                } else {
+                    showNotification(`Error: ${data.message || 'Failed to generate passcode'}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Failed to generate passcode');
+            } finally {
+                originalButton.innerHTML = '<i class="bi bi-key"></i> Generate';
+                originalButton.disabled = false;
+            }
+        });
+
+        
+        
         document.getElementById('resetAllBtn')?.addEventListener('click', async function() {
             const btn = this;
             
