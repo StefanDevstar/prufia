@@ -65,9 +65,11 @@ def logout():
 
 @socketio.on('join-admin-room')
 def handle_join_admin_room():
-    if session.get('is_admin'):  # Add your admin verification logic
-        socketio.emit('admin-message', {'message': 'Admin connected'}, room='admins')
-        
+    from flask_socketio import join_room
+    join_room('admin-room')
+    print(f"Admin joined admin-room")      
+
+
 @app.route('/login', methods=['POST'])
 def login():
     result, status_code = handle_login()  
@@ -78,10 +80,15 @@ def login():
     session['student_id'] = result['student_id']
     session['student_name'] = result['student_name']
 
+    print(f"Emitting student-login event for student {result['student_id']}")
+    
+    # Correct emit syntax:
     socketio.emit('student-login', {
         'student_id': result['student_id'],
-        'new_status': 'Used'
-    }, room='admins')
+        'new_status': 'Used',
+    }, room='admin-room') 
+    
+    print("Event emitted successfully")
     return redirect(url_for('student'))
     
 

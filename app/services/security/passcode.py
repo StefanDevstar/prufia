@@ -17,7 +17,7 @@ def gencode(student_id):
                 # First check if student already has an active passcode
                 cursor.execute(
                     """SELECT id FROM passcode 
-                    WHERE stdId = %s AND used = 0 
+                    WHERE stdId = %s 
                     AND created_at > NOW() - INTERVAL 24 HOUR""",
                     (student_id,)
                 )
