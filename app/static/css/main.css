@@ -63,13 +63,86 @@ h2, h3 {
 }
 
 .history-container {
-  width: 35%;
+  width: 45%;
   background: var(--white);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   padding: 20px;
 }
+.teacher-body{
+  margin: 80px;
+}
+.nav-item{
+  cursor: pointer!important;
+}
+#filePreviews {
+  /* Dimensions & Layout */
+  height: 300px;
+  padding: 20px 12px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* Border & Background */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  
+  /* Scrolling */
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  
+  /* Content Alignment */
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  
+  /* Transition Effects */
+  transition: all 0.2s ease;
+}
 
+/* Hover State */
+#filePreviews:hover {
+  border-color: #b3b3b3;
+  background-color: #f1f3f5;
+}
+
+/* Focus State */
+#filePreviews:focus-within {
+  border-color: #4d90fe;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+  outline: none;
+}
+
+/* Custom Scrollbar (Works in Chrome/Edge/Safari) */
+#filePreviews::-webkit-scrollbar {
+  height: 6px; /* Horizontal scrollbar height */
+  width: 6px;  /* Vertical scrollbar width */
+}
+
+#filePreviews::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+  border-radius: 3px;
+}
+
+#filePreviews::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+#filePreviews::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+/* Firefox Scrollbar */
+@supports (scrollbar-color: red blue) {
+  #filePreviews {
+    scrollbar-color: rgba(0,0,0,0.2) rgba(0,0,0,0.05);
+    scrollbar-width: thin;
+  }
+}
 /* Card Styles */
 .card {
   border: none;

@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-import os
+import os, time
 import uuid
 from werkzeug.utils import secure_filename
 from flask import render_template
@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 import sys
 from app.services.auth.login import handle_login 
 from app.services.common.getters import get_baselines, get_submissions
+from app.services.security.protect import decrypt
 from app.services.student.submit import submit_baseline, getstudents
+from app.services.teacher.business import getPlantext, workingScore
 from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
 from flask_socketio import SocketIO
 from os.path import dirname, join
@@ -256,51 +258,36 @@ def upload_assignments():
         return jsonify({"error": "No files provided"}), 400
         
     files = request.files.getlist('files')
+    timestamps = request.form.getlist('timestamps')
+    original_names = request.form.getlist('original_names')
+
     if not files or all(file.filename == '' for file in files):
         return jsonify({"error": "No selected files"}), 400
     
-    for file in files:
+    for i, file in  enumerate(files):
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            prefix = filename.split('_')[0]
-            
-            match = find_best_match(prefix, app.config['BASELINE_FOLDER'])
+            timestamp = timestamps[i] if i < len(timestamps) else str(int(time.time()))
+            filename = secure_filename(file.filename,"tech1","fall2025",timestamp)
             
             folder_path = os.path.join(
                 app.config['ASSIGNMENT_FOLDER']
             )
             os.makedirs(folder_path, exist_ok=True)
             
-            unique_filename = f"{uuid.uuid4()}_{filename}"
+            unique_filename = f"{filename}"
             file_path = os.path.join(folder_path, unique_filename)
             file.save(file_path)
-            
-            if match:
-                baseline_path = os.path.join(app.config['BASELINE_FOLDER'], match)
-                score = calculate_combined_score(baseline_path, file_path)
-                
-                if score >= 0.85:
-                    label = "Strong Match"
-                elif score >= 0.70:
-                    label = "Moderate Match"
-                elif score >= 0.50:
-                    label = "Weak Match"
-                else:
-                    label = "Very Low Match"
-                    
-                results[filename] = {
-                    'student_id': match,
-                    'score': round(score, 4),
-                    'interpretation': label,
-                    'saved_path': file_path
-                }
-            else:
-                results = {
-                    'student_id': 'Unmatched',
-                    'score': 'N/A',
-                    'interpretation': 'Manual Match Required',
-                    'saved_path': file_path
-                }
+
+
+
+
+
+            results = {
+                'student_id': 'Unmatched',
+                'score': 'N/A',
+                'interpretation': 'Manual Match Required',
+                'saved_path': file_path
+            }
         else:
             results[file.filename] = {
                 'error': 'Invalid file type',
@@ -472,7 +459,92 @@ def analyze():
             "message": f"Server error: {str(e)}"
         }), 500
     
+@app.route('/match_assignments', methods=['POST'])
+def handle_match_assignments():
+    data = request.get_json()
+    timestamp = data.get('timestamp')
+    print(f"Received timestamp: {timestamp}")
 
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    assignments_dir = os.path.join(base_dir, 'assignments')
+    baselines_dir = os.path.join(base_dir, 'baseline')
+
+    matching_files = []
+    try:
+        for filename in os.listdir(assignments_dir):
+            if str(timestamp) in str(filename):
+                file_path = os.path.join(assignments_dir, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        content = None  
+                        if filename.endswith('.txt'):
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        
+                        matching_files.append({
+                            'filename': filename,
+                            'path': file_path,
+                            'content': content, 
+                        })
+                    except Exception as e:
+                        matching_files.append({
+                            'filename': filename,
+                            'path': file_path,
+                            'error': f"Could not read file: {str(e)}"
+                        })
+        
+    except FileNotFoundError:
+        return jsonify({'error': 'Assignments directory not found'}), 404
+
+    print("matching_files---",matching_files)
+
+    baselines = []
+    try:
+        for student_id in os.listdir(baselines_dir):
+            student_dir = os.path.join(baselines_dir, student_id)
+            
+            if not os.path.isdir(student_dir):
+                continue
+            
+            baseline_entry = {'student_id': student_id}
+            
+            for filename in os.listdir(student_dir):
+                file_path = os.path.join(student_dir, filename)
+                
+                if not os.path.isfile(file_path):
+                    continue
+                
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                    if 'baseline1' in filename:
+                        baseline_entry['baseline1_enc'] = content
+                        baseline_entry['baseline1'] = getPlantext(filename , content,1)
+                    elif 'baseline2' in filename:
+                        baseline_entry['baseline2_enc'] = content
+                        baseline_entry['baseline2'] = getPlantext(filename , content,2)
+
+                    baseline_entry['filename'] = filename
+                except Exception as e:
+                    baseline_entry[f'error_{filename}'] = str(e)
+            
+            
+            if 'baseline1' in baseline_entry or 'baseline2' in baseline_entry:
+                baselines.append(baseline_entry)
+                
+    except FileNotFoundError:
+        return jsonify({'error': 'Baseline directory not found'}), 404
+    
+    print("baselines--", baselines)
+
+    matchdata=workingScore(matching_files, baselines)
+    
+    return jsonify({
+        'status': 'success',
+        'received_timestamp': timestamp,
+        'data':matchdata
+    })
 def calculate_combined_score(baseline_path, submission_path):
     """Calculate a combined similarity score between baseline and submission"""
     return 100*round(0.5 + (hash(submission_path) % 5000) / 10000, 4)
