@@ -151,7 +151,9 @@ def reset():
     
     return jsonify(response), status_code
     
-
+@app.route('/admin')
+def admin_dashboard():
+    return render_template('admin/main.html')
 
 
 

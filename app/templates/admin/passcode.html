@@ -21,7 +21,7 @@
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container mt-4" style="margin-left:0;">
         <h1 class="mb-4">Student Passcode Management</h1>
         
         <div class="card">
@@ -294,7 +294,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken() // Add if using CSRF protection
+                        // 'X-CSRFToken': getCSRFToken() // Add if using CSRF protection
                     }
                 });
                 

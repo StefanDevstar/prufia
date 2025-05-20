@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Navigation -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                {% include 'admin/left_nav.html' %}
+            </div>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Socket Status Indicator -->
+    <div id="socket-status" class="badge bg-secondary">Connecting...</div>
+
+    <!-- Passcode Modal -->
+    <div class="modal fade" id="passcodeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Passcode Generated</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>A new passcode has been generated for <strong id="studentName"></strong>:</p>
+                    <div class="alert alert-primary text-center fs-3" id="generatedPasscode"></div>
+                    <p class="text-muted small">Generated at <span id="passcodeExpires"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="copyPasscodeBtn">
+                        <i class="bi bi-clipboard"></i> Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div class="modal fade" id="confirmGenerateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Passcode Generation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to generate a new passcode for student <strong id="confirmStudentId"></strong>?</p>
+                    <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> This will invalidate any existing passcode.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmGenerateBtn">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-primary text-white">
+                <strong class="me-auto">System Notification</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="resetConfirmModal" tabindex="-1" aria-labelledby="resetConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="resetConfirmModalLabel">Confirm Reset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> Are you sure you want to reset ALL passcodes?</p>
+                    <p class="text-danger"><strong>Warning:</strong> This action cannot be undone!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmResetBtn">Reset All Passcodes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Global socket connection
+        const socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            query: { 'user-type': 'admin' }
+        });
+
+        // Socket status management
+        const socketStatus = document.getElementById('socket-status');
+        socket.on('connect', () => {
+            socketStatus.textContent = 'Connected ✓';
+            socketStatus.className = 'badge bg-success';
+            socket.emit('join-admin-room');
+        });
+
+        socket.on('disconnect', () => {
+            socketStatus.textContent = 'Disconnected ✗';
+            socketStatus.className = 'badge bg-danger';
+        });
+
+        socket.on('connect_error', (error) => {
+            socketStatus.textContent = 'Connection Error';
+            socketStatus.className = 'badge bg-warning text-dark';
+        });
+
+        // Handle student login events
+        socket.on('student-login', (data) => {
+            const row = document.querySelector(`tr[data-student-id="${data.student_id}"]`);
+            if (!row) return;
+            
+            const statusCell = row.querySelector(`#use-status-${data.student_id}`);
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="badge bg-danger">Used</span>
+                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                `;
+            }
+            
+            const genBtn = row.querySelector('.generate-passcode-btn');
+            if (genBtn) genBtn.disabled = true;
+            
+            showNotification(`Student ${data.student_id} logged in at ${new Date().toLocaleTimeString()}`);
+        });
+
+        // Notification function
+        function showNotification(message, type = 'primary') {
+            const toastEl = document.getElementById('notificationToast');
+            const toastBody = document.getElementById('toastMessage');
+            
+            if (toastEl && toastBody) {
+                const toastHeader = toastEl.querySelector('.toast-header');
+                toastHeader.className = `toast-header bg-${type} text-white`;
+                toastBody.textContent = message;
+                new bootstrap.Toast(toastEl).show();
+            }
+        }
+
+        // CSRF helper function
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
+
+        // Content loading function
+        function loadContent(url) {
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(html => {
+                    document.querySelector('.main-content').innerHTML = html;
+                    // Initialize any page-specific scripts after load
+                    if (url.includes('passcode')) {
+                        initPasscodePage();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading content:', error);
+                    showNotification('Failed to load content', 'danger');
+                });
+        }
+
+        // Passcode page initialization
+        window.initPasscodePage = function() {
+            // Generate passcode button handler using event delegation
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('generate-passcode-btn')) {
+                    const studentId = e.target.getAttribute('data-student-id');
+                    
+                    // Set the student ID in the confirmation modal
+                    document.getElementById('confirmStudentId').textContent = studentId;
+                    
+                    // Show the confirmation modal
+                    const confirmModal = new bootstrap.Modal(document.getElementById('confirmGenerateModal'));
+                    confirmModal.show();
+                    
+                    // Store the button reference for later use
+                    document.getElementById('confirmGenerateBtn').onclick = async function() {
+                        const originalButton = e.target;
+                        const passcodeCell = document.getElementById(`passcode-${studentId}`);
+                        const statusCell = document.getElementById(`use-status-${studentId}`);
+                        
+                        confirmModal.hide();
+                        
+                        originalButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+                        originalButton.disabled = true;
+                        
+                        try {
+                            const response = await fetch(`/generate-passcode/${studentId}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            
+                            const data = await response.json();
+                            const now = new Date();
+                            
+                            if (data.status === 'success') {
+                                passcodeCell.innerHTML = `
+                                    <code>${data.passcode}</code>
+                                    <div class="text-success small">Generated: ${now.toLocaleString()}</div>
+                                `;
+                                
+                                if (statusCell) {
+                                    statusCell.innerHTML = `
+                                        <span class="badge bg-success">Active</span>
+                                        <small class="text-muted">Not used yet</small>
+                                    `;
+                                }
+                                
+                                document.getElementById('studentName').textContent = studentId;
+                                document.getElementById('generatedPasscode').textContent = data.passcode;
+                                document.getElementById('passcodeExpires').textContent = 
+                                    new Date(data.expires_at).toLocaleString();
+                                
+                                new bootstrap.Modal(document.getElementById('passcodeModal')).show();
+                            } else {
+                                showNotification(`Error: ${data.message || 'Failed to generate passcode'}`);
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            showNotification('Failed to generate passcode');
+                        } finally {
+                            originalButton.innerHTML = '<i class="bi bi-key"></i> Generate';
+                            originalButton.disabled = false;
+                        }
+                    };
+                }
+            });
+
+            // Reset all button handler
+            const resetBtn = document.getElementById('resetAllBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', async function() {
+                    const btn = this;
+                    
+                    if (!confirm('Are you sure you want to reset ALL passcodes?')) {
+                        return;
+                    }
+                    
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Resetting...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const response = await fetch('/reset', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCSRFToken()
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to reset passcodes');
+                        }
+                        
+                        showNotification(`Successfully reset ${data.affected_rows || 0} passcodes`, 'success');
+                        setTimeout(() => {
+                            loadContent('/passcode');
+                        }, 1500);
+                        
+                    } catch (error) {
+                        console.error('Reset error:', error);
+                        showNotification(error.message || 'Error resetting passcodes', 'danger');
+                    } finally {
+                        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Reset All Passcodes';
+                        btn.disabled = false;
+                    }
+                });
+            }
+
+            // Copy passcode button
+            const copyBtn = document.getElementById('copyPasscodeBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const passcode = document.getElementById('generatedPasscode').textContent;
+                    navigator.clipboard.writeText(passcode).then(() => {
+                        this.innerHTML = '<i class="bi bi-check-circle"></i> Copied!';
+                        setTimeout(() => {
+                            this.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+                        }, 2000);
+                    });
+                });
+            }
+        };
+
+        // Load default content
+        document.addEventListener('DOMContentLoaded', () => {
+            loadContent('/passcode'); // Default to passcode page
+        });
+    </script> 
+
+
+
+
+
+
+</body>
+</html>
