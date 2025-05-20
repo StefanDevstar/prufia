@@ -549,7 +549,7 @@
                     <h3><i class="fas fa-filter"></i> Filters</h3>
                     <div>
                         <div class="filter-group">
-                            <label class="filter-label">Student ID</label>
+                            <label class="filter-label">Name or Alias</label>
                             <select id="studentFilter" class="filter-select">
                                 <option value="">All Students</option>
                             </select>
@@ -597,94 +597,7 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-        // Sample data - will be replaced with your actual matching results
-        const matchingResults = [
-            {
-                "filename": "5",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "10",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "5",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "9",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "6",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "10",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "6",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "9",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "7",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "10",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "7",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "9",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "8",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "10",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            },
-            {
-                "filename": "8",
-                "flag": "green",
-                "label": "Match",
-                "score": 100,
-                "semester": "fall2025",
-                "student_id": "9",
-                "teacher": "tech1",
-                "time": "May 20, 2025 13:24:00"
-            }
-        ];
-
-        
-        
-        
-        
+        let matchingResults = [];    
         const uploadForm = document.getElementById('uploadForm');
         let uploadedFilename='';
         function toggleDetails(button) {
@@ -872,6 +785,9 @@
                 }
 
                 const matchData = await matchResponse.json();
+                const resultsDiv = document.getElementById('matchingResults');
+                resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> All matches were completed successfully.</h4>';           
+            
                 displayMatchingResults(matchData.data);
                 console.log("matchdata==",matchData)
                 showToast(`Matching completed for ${files.length} file(s)!`, 'success');
@@ -882,35 +798,24 @@
             }
         });
 
-       
         function displayUploadResults(data) {
             const resultsDiv = document.getElementById('uploadResults');
             resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> Uploaded successfully</h4>';           
         }
 
-        // function displayMatchingResults(data) {
-        //     const resultsDiv = document.getElementById('matchingResults');
-        //     resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> All matches were completed successfully.</h4>';           
-            
-        // }
-        // Display matching results
         function displayMatchingResults(data) {
-            const resultsDiv = document.getElementById('matchingResults');
-            resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> All matches were completed successfully.</h4>';           
+            matchingResults = data;
             const resultsList = document.getElementById('resultsList');
             const resultsCount = document.getElementById('resultsCount');
             const studentFilter = document.getElementById('studentFilter');
             const fileFilter = document.getElementById('fileFilter');
             const confidenceFilter = document.getElementById('confidenceFilter');
             
-            // Clear existing results
             resultsList.innerHTML = '';
             
-            // Update count
             resultsCount.textContent = `${data.length} ${data.length === 1 ? 'match' : 'matches'}`;
             
-            // Populate filters
-            populateFilterOptions(data, 'student_id', studentFilter);
+            populateFilterOptions(data, 'name_or_alias', studentFilter);
             populateFilterOptions(data, 'filename', fileFilter);
             
             if (data.length === 0) {
@@ -918,11 +823,10 @@
                 return;
             }
             
-            // Display results
             data.forEach(result => {
                 const resultItem = document.createElement('li');
                 resultItem.className = 'result-item';
-                resultItem.dataset.studentId = result.student_id;
+                resultItem.dataset.name_or_alias = result.name_or_alias;
                 resultItem.dataset.filename = result.filename;
                 resultItem.dataset.flag = result.flag;
                 
@@ -935,7 +839,7 @@
                         <div class="result-meta">
                             <div class="result-meta-item">
                                 <i class="fas fa-user-graduate"></i>
-                                <span>Student ID: ${result.student_id}</span>
+                                <span>Name or Alias: ${result.name_or_alias}</span>
                             </div>
                             <div class="result-meta-item">
                                 <i class="fas fa-clock"></i>
@@ -966,7 +870,6 @@
             });
         }
         
-        // Populate filter dropdown options
         function populateFilterOptions(data, property, selectElement) {
             const uniqueValues = [...new Set(data.map(item => item[property]))];
             uniqueValues.forEach(value => {
@@ -977,7 +880,6 @@
             });
         }
         
-        // Show detailed view of a result
         function showResultDetails(result) {
             const detailContent = document.getElementById('detailContent');
             
@@ -987,8 +889,8 @@
                     <div class="detail-value">${result.filename}</div>
                 </div>
                 <div class="detail-row">
-                    <div class="detail-label">Student ID:</div>
-                    <div class="detail-value">${result.student_id}</div>
+                    <div class="detail-label">Name or Alias:</div>
+                    <div class="detail-value">${result.name_or_alias}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Teacher:</div>
@@ -1025,30 +927,77 @@
             `;
         }
         
-        // Filter results based on selections
         function filterResults() {
             const studentFilter = document.getElementById('studentFilter').value;
             const fileFilter = document.getElementById('fileFilter').value;
             const confidenceFilter = document.getElementById('confidenceFilter').value;
             
             const filteredResults = matchingResults.filter(result => {
-                const studentMatch = !studentFilter || result.student_id === studentFilter;
+                const studentMatch = !studentFilter || result.name_or_alias === studentFilter;
                 const fileMatch = !fileFilter || result.filename === fileFilter;
                 const confidenceMatch = !confidenceFilter || result.flag === confidenceFilter;
                 
                 return studentMatch && fileMatch && confidenceMatch;
             });
             
-            displayMatchingResults(filteredResults);
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = '';
+            
+            if (filteredResults.length === 0) {
+                resultsList.innerHTML = '<div class="no-results">No matching results found</div>';
+                return;
+            }
+            
+            filteredResults.forEach(result => {
+                const resultItem = document.createElement('li');
+                resultItem.className = 'result-item';
+                resultItem.dataset.name_or_alias = result.name_or_alias;
+                resultItem.dataset.filename = result.filename;
+                resultItem.dataset.flag = result.flag;
+                
+                resultItem.innerHTML = `
+                    <div class="result-info">
+                        <div class="result-title">
+                            <span>${result.filename}</span>
+                            <span class="result-flag flag-${result.flag}">${result.label}</span>
+                        </div>
+                        <div class="result-meta">
+                            <div class="result-meta-item">
+                                <i class="fas fa-user-graduate"></i>
+                                <span>Name or Alias: ${result.name_or_alias}</span>
+                            </div>
+                            <div class="result-meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span>${result.time}</span>
+                            </div>
+                            <div class="result-meta-item">
+                                <i class="fas fa-percentage"></i>
+                                <span>Score: ${result.score}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-actions">
+                        <button class="action-btn view-btn" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="action-btn download-btn" title="Download Report">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                `;
+                
+                resultsList.appendChild(resultItem);
+                
+                resultItem.querySelector('.view-btn').addEventListener('click', () => {
+                    showResultDetails(result);
+                });
+            });
         }
         
-        // Initialize filters
         document.getElementById('studentFilter').addEventListener('change', filterResults);
         document.getElementById('fileFilter').addEventListener('change', filterResults);
         document.getElementById('confidenceFilter').addEventListener('change', filterResults);
         
-        // Initial display
-        // displayMatchingResults(matchingResults);
     </script>
 </body>
 </html>

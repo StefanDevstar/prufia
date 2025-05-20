@@ -8,7 +8,7 @@ import sys
 from app.services.auth.login import handle_login 
 from app.services.common.getters import get_baselines, get_submissions
 from app.services.security.protect import decrypt
-from app.services.student.submit import submit_baseline, getstudents
+from app.services.student.submit import submit_baseline, getstudents,getstudentNamebyId
 from app.services.teacher.business import getPlantext, workingScore
 from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
 from flask_socketio import SocketIO
@@ -496,7 +496,7 @@ def handle_match_assignments():
     except FileNotFoundError:
         return jsonify({'error': 'Assignments directory not found'}), 404
 
-    print("matching_files---",matching_files)
+    # print("matching_files---",matching_files)
 
     baselines = []
     try:
@@ -506,7 +506,10 @@ def handle_match_assignments():
             if not os.path.isdir(student_dir):
                 continue
             
-            baseline_entry = {'student_id': student_id}
+            baseline_entry = {
+                'student_id': student_id,
+                'name_or_alias': getstudentNamebyId(student_id)
+            }
             
             for filename in os.listdir(student_dir):
                 file_path = os.path.join(student_dir, filename)
@@ -536,7 +539,7 @@ def handle_match_assignments():
     except FileNotFoundError:
         return jsonify({'error': 'Baseline directory not found'}), 404
     
-    print("baselines--", baselines)
+    # print("baselines--", baselines)
 
     matchdata=workingScore(matching_files, baselines)
     

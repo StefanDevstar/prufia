@@ -86,3 +86,22 @@ def getstudents():
         return None, f"Database error: {str(db_error)}", 500
     finally:
         conn.close()
+
+def getstudentNamebyId(id):
+    conn = db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT name_or_alias FROM students WHERE id=%s", (id,))
+            result = cursor.fetchone()  # Fetch the record
+            
+            if result:  # If a student is found
+                return result[0]  # Return just the name_or_alias (first column)
+            else:
+                return None  # Return None if no student found
+
+    except Exception as db_error:
+        conn.rollback()
+        print(f"Database error: {str(db_error)}")  # Log error (optional)
+        return None  # Return None on error
+    finally:
+        conn.close()

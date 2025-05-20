@@ -126,6 +126,7 @@ def workingScore(assesses, baselines):
                     "score": int(final_score * 100),
                     "filename": filename,
                     "student_id": baseline['student_id'],
+                    "name_or_alias": baseline['name_or_alias'],
                     "time": timestamp,
                     "teacher": teacher,
                     "semester": semester,
