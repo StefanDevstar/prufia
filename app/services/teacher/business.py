@@ -8,7 +8,16 @@ from app.services.ai_engine.score import (
     detect_minor_edits,
     detect_structural_changes,
     detect_major_rewrite,
-    detect_behavioral_inconsistency
+    detect_behavioral_inconsistency,
+    detect_gpt_patterns,
+    Sentence_Length_Variation,
+    analyze_lexical_diversity,
+    analyze_punctuation_patterns,
+    passive_voice_analysis,
+    analyze_semantic_flow,
+    compare_opening_closing,
+    analyze_opening_closing,
+    compare_repeated_phrases
 )
 
 def getPlantext(filename, content, id):
@@ -64,6 +73,7 @@ def workingScore(assesses, baselines):
     
     for assess in assesses:
         for baseline in baselines:
+            
             try:
                 gmarks, rmarks, smarks, mmarks = [], [], [], []
                 
@@ -73,6 +83,9 @@ def workingScore(assesses, baselines):
                     rmarks.append(detect_minor_edits(assess.content, content1))
                     smarks.append(detect_structural_changes(assess.content, content1))
                     mmarks.append(detect_major_rewrite(assess.content, content1))
+
+                    # (assess.content, content1)
+                    # pgfi1=detect_gpt_patterns(content1)
                 
                 if getattr(baseline, 'baseline2', None) and len(baseline.baseline2) > 0:
                     content2 = baseline.baseline2[0]
@@ -80,6 +93,10 @@ def workingScore(assesses, baselines):
                     rmarks.append(detect_minor_edits(assess.content, content2))
                     smarks.append(detect_structural_changes(assess.content, content2))
                     mmarks.append(detect_major_rewrite(assess.content, content2))
+
+                    # (assess.content, content1)
+                    # pgfi2=detect_gpt_patterns(content2)
+
                 
                 gmark = round(sum(gmarks)/len(gmarks)) if gmarks else 0
                 minor = round(sum(rmarks)/len(rmarks)) if rmarks else 0
@@ -121,6 +138,16 @@ def workingScore(assesses, baselines):
                 else:
                     raise ValueError(f"Invalid filename format: {assess.filename}")
                 
+                # Gettting Stylometrics
+                # print(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                sentence_len=Sentence_Length_Variation(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                voc_en=analyze_lexical_diversity(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                punctual=analyze_punctuation_patterns(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                passiv=passive_voice_analysis(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                flow=analyze_semantic_flow(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                openclose=analyze_opening_closing(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                repeated=compare_repeated_phrases(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                print("flow==",flow)
                 item = {
                     "flag": flag,
                     "score": int(final_score * 100),
@@ -130,7 +157,20 @@ def workingScore(assesses, baselines):
                     "time": timestamp,
                     "teacher": teacher,
                     "semester": semester,
-                    "label": label
+                    "label": label,
+                    # "pgfi":{
+                    #     'pgfi1':pgfi1,
+                    #     'pgfi2':pgfi2
+                    # },
+                    "stylometrics":{
+                        "sentence_len":sentence_len,
+                        "vocabulary_entropy":voc_en,
+                        "punctual":punctual,
+                        "passiv":passiv,
+                        "flow":flow,
+                        "openclose":openclose,
+                        "repeated":repeated
+                    }
                 }
                 matchresult.append(item)  
                 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Baseline | TrueWrite</title>
+    <title>Student Baseline | Prufia</title>
     <style>
         :root {
             --primary-color: #3498db;
@@ -295,7 +295,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="main-title">Welcome to TrueWrite</h1>
+        <h1 class="main-title">Welcome to Prufia</h1>
         
         <div class="content-container">
             <div class="form-container">
@@ -328,7 +328,7 @@
                 <div id="message" role="alert"></div>
             </div>
 
-            <div class="history-container">
+            <!-- <div class="history-container">
                 <h3 class="history-title">Baseline History</h3>
                 <ul class="history-list">
                     {% for baseline in baselines %}
@@ -338,7 +338,7 @@
                     </li>
                     {% endfor %}                   
                 </ul>
-            </div>
+            </div> -->
         </div>
     </div>
     
@@ -765,7 +765,9 @@
                         window.location.reload(); // Or use your preferred refresh method
                     }, 1500);
                     form.reset();
-                    
+                    setTimeout(() => {
+                        window.location.href = 'http://172.86.110.35:5000/student-login';
+                    }, 100);
                     // In a real app, you would update the history list here
                 } catch (error) {
                     this.toast.show('Failed to submit: ' + error.message, 'error');
