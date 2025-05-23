@@ -68,9 +68,10 @@ def getPlantext(filename, content, id):
         conn.close()
 
 
-def workingScore(assesses, baselines):
+def workingScore(assesses, baselines, socketio):
     matchresult = []
-    
+    step=100/(len(assesses) * len(baselines))
+    pros=0
     for assess in assesses:
         for baseline in baselines:
             
@@ -139,15 +140,26 @@ def workingScore(assesses, baselines):
                     raise ValueError(f"Invalid filename format: {assess.filename}")
                 
                 # Gettting Stylometrics
-                # print(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
                 sentence_len=Sentence_Length_Variation(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                voc_en=analyze_lexical_diversity(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                punctual=analyze_punctuation_patterns(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                passiv=passive_voice_analysis(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                
+                voc_en=analyze_lexical_diversity( baseline['baseline1'][0], baseline['baseline2'][0],assess['content'])
+                
+                punctual=analyze_punctuation_patterns( baseline['baseline1'][0], baseline['baseline2'][0],assess['content'])
+                
+                passiv=passive_voice_analysis( baseline['baseline1'][0], baseline['baseline2'][0], assess['content'])
+                
                 flow=analyze_semantic_flow(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                openclose=analyze_opening_closing(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                repeated=compare_repeated_phrases(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
-                print("flow==",flow)
+                
+                openclose=analyze_opening_closing( baseline['baseline1'][0], baseline['baseline2'][0], assess['content'])
+                
+                repeated=compare_repeated_phrases( baseline['baseline1'][0], baseline['baseline2'][0], assess['content'])
+                
+                pgfi=detect_gpt_patterns(assess['content'], baseline['baseline1'][0], baseline['baseline2'][0])
+                pros+=step
+                socketio.emit('progress', {
+                    'func_name': assess['filename'],
+                    'value':int(pros)
+                }, room='admin-room')
                 item = {
                     "flag": flag,
                     "score": int(final_score * 100),
@@ -168,6 +180,7 @@ def workingScore(assesses, baselines):
                         "punctual":punctual,
                         "passiv":passiv,
                         "flow":flow,
+                        "pgfi":pgfi,
                         "openclose":openclose,
                         "repeated":repeated
                     }

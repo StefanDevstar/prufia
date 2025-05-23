@@ -5,47 +5,11 @@
     <title>Teacher Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-        #global-progress {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px; /* Very thin */
-            background: #e0e0e0;
-            z-index: 9999;
-        }
-        
-        #progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            transition: width 0.3s ease;
-        }
-        
-        #progress-status {
-            position: fixed;
-            bottom: 5px;
-            left: 10px;
-            font-size: 12px;
-            color: #333;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-    </style>
+   
 </head>
-<body class="teacher-body">    
+<body class="teacher-body">
     <div class="dashboard-header">
-        <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
-            <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
-            <div class="title">
-                <span class="pr">PR</span><span class="ufia">UFIA</span>
-            </div>
-        </h2>
-        <h2>
-            <i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black"> Teacher Dashboard</span>
-        </h2>
+        <h2><i class="fas fa-chalkboard-teacher"></i> Prufia Teacher Dashboard</h2>
     </div>
     
     <div class="teacher-container">
@@ -85,26 +49,25 @@
             <div id="uploadResults"></div>
             <div id="matchingResults"></div>           
             <div id="matchResults"></div>
-            <div id="singleMatch"></div>
             <div class="confidence">
                 <h3><i class="fas fa-info-circle"></i> Confidence Score Guide</h3>
                 <ul style="list-style: none; padding-left: 0;">
                     <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
-                    <span class="flag flag-pulse flag-green">Over 85</span>
+                    <span class="flag-green">Over 85</span>
                     <div>
                         <strong>Confirmed Match</strong><br>
                         Writing aligns closely with the student’s known style. Small edits or grammar adjustments expected. No action needed.
                     </div>
                     </li>
                     <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
-                    <span class="flag flag-pulse flag-yellow">70-84</span>
+                    <span class="flag-yellow">70-84</span>
                     <div>
                         <strong>Moderate Match</strong><br>
                         Writing shows variation from the student’s usual pattern. Could involve editing support or assistive tools. Please review for context.
                     </div>
                     </li>
                     <li style="display: flex; align-items: flex-start; gap: 10px;">
-                    <span class="flag flag-pulse flag-red">Below 70</span>
+                    <span class="flag-red">Below 70</span>
                     <div>
                         <strong>Authorship Unclear</strong><br>
                         This document does not align with the student’s typical structure and rhythm. Follow-up may be appropriate to verify authorship.
@@ -115,22 +78,6 @@
         </div>
         <div id="matchingResults" class="results-container">
             <div class="results-sidebar">
-                <div class="dropdown-container">
-                    Select students : 
-                    <input type="text" class="dropdown-input" placeholder="Select options" readonly>
-                    <div class="dropdown-list">
-                        <div class="dropdown-item select-all">
-                            <input type="checkbox" id="select-all" checked> 
-                            <label for="select-all">Select All</label>
-                        </div>
-                        {% for item in baselines %}
-                        <div class="dropdown-item">
-                            <input type="checkbox" id="option{{ loop.index }}" value="{{ item.name_or_alias }}" checked>
-                            <label for="option{{ loop.index }}">{{ item.name_or_alias }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
                 <div class="filters-section">
                     <h3><i class="fas fa-filter"></i> Filters</h3>
                     <div>
@@ -179,17 +126,9 @@
     </div>
     
     <div id="toast" class="toast"></div>
-    <div id="global-progress">
-        <div id="progress-bar"></div>
-    </div>
-    <div id="progress-status">Ready</div>
-
-
-
-
+    
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         let matchingResults = [];    
         const uploadForm = document.getElementById('uploadForm');
@@ -199,101 +138,6 @@
             item.classList.toggle('expanded');
             button.classList.toggle('rotate-180');
         }
-
-
-        const socket = io({
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            query: { 'user-type': 'admin' }
-        });
-
-        // Socket status management
-        const socketStatus = document.getElementById('socket-status');
-        socket.on('connect', () => {
-            console.log("I am joined")
-            socket.emit('join-admin-room');
-        });
-
-        socket.on('disconnect', () => {
-        });
-
-        socket.on('connect_error', (error) => {
-        });
-
-        // Handle student login events
-        socket.on('progress', (data) => {
-            const progressBar = document.getElementById('progress-bar');
-            const statusNote = document.getElementById('progress-status');
-            progressBar.style.width = `${data.value}%`;
-            statusNote.textContent = `${data.value}% - ${data.func_name} was analyzed.`;
-   
-            if (data.value >= 99) {
-                setTimeout(() => {
-                    progressBar.style.width = '0%';
-                    statusNote.textContent = 'Completed';
-                }, 2000); // Hide after 2 sec
-            }  
-        });
-        const dropdownInput = document.querySelector('.dropdown-input');
-        const dropdownList = document.querySelector('.dropdown-list');
-        const checkboxes = document.querySelectorAll('.dropdown-item input[type="checkbox"]');
-        const selectAll = document.getElementById('select-all');
-        
-        // Initialize with all options selected
-        function initialize() {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true; // Check all boxes by default
-            });
-            updateSelectedOptions();
-        }
-        
-        // Toggle dropdown visibility
-        dropdownInput.addEventListener('click', function() {
-            dropdownList.classList.toggle('show');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.dropdown-container')) {
-                dropdownList.classList.remove('show');
-            }
-        });
-        
-        // Update selected options display
-        function updateSelectedOptions() {
-            const selectedOptions = [];
-            checkboxes.forEach(checkbox => {
-                if (checkbox !== selectAll && checkbox.checked) {
-                    selectedOptions.push(checkbox.value);
-                }
-            });
-            
-            dropdownInput.value = selectedOptions.join(', ');
-            
-            // Update "Select All" checkbox state
-            const allChecked = [...checkboxes].slice(1).every(checkbox => checkbox.checked);
-            selectAll.checked = allChecked;
-            selectAll.indeterminate = !allChecked && selectedOptions.length > 0;
-        }
-        
-        // Handle individual checkbox changes
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this === selectAll) {
-                    // Select All/Deselect All functionality
-                    checkboxes.forEach(cb => {
-                        if (cb !== selectAll) {
-                            cb.checked = selectAll.checked;
-                        }
-                    });
-                }
-                updateSelectedOptions();
-            });
-        });
-        
-        // Initialize with all selected
-        initialize();
         document.getElementById('clearSelectionBtn').addEventListener('click', function() {
             document.getElementById('assignmentFiles').value = '';
             const filePreviews = document.getElementById('filePreviews');
@@ -429,7 +273,7 @@
                 showToast('Please select at least one file.', 'error');
                 return;
             }
-            
+
             showToast(`Uploading ${files.length} file(s)...`, 'info', 5000);
             
             try {
@@ -453,7 +297,6 @@
 
                 const uploadData = await uploadResponse.json();
                 
-
                 displayUploadResults(uploadData);
                 showToast(`${files.length} file(s) uploaded successfully!`, 'success');
                 
@@ -478,10 +321,8 @@
                 console.log("match result===",matchData)
                 const resultsDiv = document.getElementById('matchingResults');
                 resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> All matches were completed successfully.</h4>';           
-                if(files.length===1){
-                    displayMatchingResults(matchData.data,1);
-                }
-                else displayMatchingResults(matchData.data);
+            
+                displayMatchingResults(matchData.data);
                 console.log("matchdata==",matchData)
                 showToast(`Matching completed for ${files.length} file(s)!`, 'success');
 
@@ -630,17 +471,15 @@
             return 'Probable Mismatch (Unlikely to be student\'s work)';
         }
 
-        function displayMatchingResults(data, len=null) {
+        function displayMatchingResults(data) {
             matchingResults = data;
             const resultsList = document.getElementById('resultsList');
             const resultsCount = document.getElementById('resultsCount');
             const studentFilter = document.getElementById('studentFilter');
             const fileFilter = document.getElementById('fileFilter');
             const confidenceFilter = document.getElementById('confidenceFilter');
-            const singleMatchContainer = document.getElementById('singleMatch');
             
             resultsList.innerHTML = '';
-            if (singleMatchContainer) singleMatchContainer.innerHTML = '';
             
             resultsCount.textContent = `${data.length} ${data.length === 1 ? 'match' : 'matches'}`;
             
@@ -654,27 +493,7 @@
             
             data.forEach(result => {
                 const resultItem = document.createElement('li');
-                resultItem.className = len === 1 ? 'single-result-container' : 'result-item';
-                if (len === 1) {
-                    resultItem.style.cssText = `
-                        list-style-type: none; 
-                        border: 2px solid #4a89dc;
-                        border-radius: 8px;
-                        padding: 20px;
-                        margin: 20px 0;
-                        background: #f8f9fa;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                        transition: all 0.3s ease;
-                    `;
-                    resultItem.onmouseenter = () => {
-                        resultItem.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-                        resultItem.style.transform = 'translateY(-2px)';
-                    };
-                    resultItem.onmouseleave = () => {
-                        resultItem.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                        resultItem.style.transform = 'translateY(0)';
-                    };
-                }
+                resultItem.className = 'result-item';
                 resultItem.dataset.name_or_alias = result.name_or_alias;
                 resultItem.dataset.filename = result.filename;
                 resultItem.dataset.flag = result.flag;
@@ -706,34 +525,29 @@
                                     result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
                                     result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Vocab Entropy: ${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%">
+                            <div class="metric-pill" data-tooltip="Vocab Entropy: 78%">
                                 <span class="metric-label">VE</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%</span>
+                                <span class="metric-value">78%</span>
                             </div>
                             <div class="metric-pill" data-tooltip="Punctuation: Pass">
                                 <span class="metric-label">PR</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score<50?'✓':'✗'}</span>
+                                <span class="metric-value">✓</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Passive Voice: ${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %">
+                            <div class="metric-pill" data-tooltip="Passive Voice: 12%">
                                 <span class="metric-label">PV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %</span>
+                                <span class="metric-value">12%</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Phrase Reuse: ${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}">
+                            <div class="metric-pill" data-tooltip="Phrase Reuse: No">
                                 <span class="metric-label">RE</span>
-                                <span class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</span>
+                                <span class="metric-value">✗</span>
                             </div>
                             <div class="metric-pill" data-tooltip="PGFI: 18%">
                                 <span class="metric-label">AI</span>
-                                <span class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"}</span>
+                                <span class="metric-value">18%</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Consistency: ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}">
+                            <div class="metric-pill" data-tooltip="Consistency: 0.91">
                                 <span class="metric-label">OC</span>
-                                <span class="metric-value">${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}</span>
+                                <span class="metric-value">0.91</span>
                             </div>
                         </div>
                     </div>
@@ -747,6 +561,7 @@
                     </div>
                 `;
                 
+                resultsList.appendChild(resultItem);
                 
                 // Add click handler for view button
                 resultItem.querySelector('.view-btn').addEventListener('click', () => {
@@ -758,11 +573,6 @@
                     e.stopPropagation();
                     generateAndDownloadPDF(result);
                 });
-                if (len === 1) {
-                    singleMatchContainer.appendChild(resultItem);
-                } else {
-                    resultsList.appendChild(resultItem);
-                }
             });
         }
         
@@ -826,10 +636,8 @@
                                 <div class="metric-icon"><i class="fas fa-ruler-combined"></i></div>
                                 <h5>Sentence Variation</h5>
                             </div>
-                            <div class="metric-value">${
-                                    result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
-                                    result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</div>
-                            <div class="metric-description">${result.stylometrics?.sentence_len?.assessment?.ai_score}-${result.stylometrics?.sentence_len?.assessment?.assessment}</div>
+                            <div class="metric-value">Low Deviation</div>
+                            <div class="metric-description">Consistent sentence structure</div>
                         </div>
                         
                         <div class="metric-card">
@@ -837,10 +645,8 @@
                                 <div class="metric-icon"><i class="fas fa-language"></i></div>
                                 <h5>Vocabulary Entropy</h5>
                             </div>
-                            <div class="metric-value">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%</div>
-                            <div class="metric-description">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.assessment}</div>
+                            <div class="metric-value">78% Unique</div>
+                            <div class="metric-description">High lexical diversity</div>
                         </div>
                         
                         <div class="metric-card">
@@ -848,10 +654,8 @@
                                 <div class="metric-icon"><i class="fas fa-stopwatch"></i></div>
                                 <h5>Punctuation Rhythm</h5>
                             </div>
-                            <div class="metric-value">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score}</div>
-                            <div class="metric-description">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.assessment}</div>
+                            <div class="metric-value">0.82</div>
+                            <div class="metric-description">Natural patterns</div>
                         </div>
                         
                         <div class="metric-card">
@@ -859,10 +663,8 @@
                                 <div class="metric-icon"><i class="fas fa-voice"></i></div>
                                 <h5>Passive Voice</h5>
                             </div>
-                            <div class="metric-value">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %</div>
-                            <div class="metric-description">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.assessment}</div>
+                            <div class="metric-value">12%</div>
+                            <div class="metric-description">Optimal balance</div>
                         </div>
                         
                         <div class="metric-card">
@@ -870,8 +672,8 @@
                                 <div class="metric-icon"><i class="fas fa-redo-alt"></i></div>
                                 <h5>Phrase Reuse</h5>
                             </div>
-                            <div class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</div>
-                            <div class="metric-description">${result.stylometrics?.repeated?.assess_text_analysis?.assessment}</div>
+                            <div class="metric-value">No Repeats</div>
+                            <div class="metric-description">Minimal repetition</div>
                         </div>
                         
                         <div class="metric-card">
@@ -879,8 +681,8 @@
                                 <div class="metric-icon"><i class="fas fa-robot"></i></div>
                                 <h5>PGFI (AI Mimicry)</h5>
                             </div>
-                            <div class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"}</div>
-                            <div class="metric-description">Variance is ${result.stylometrics.pgfi.semantic_variance}</div>
+                            <div class="metric-value">18%</div>
+                            <div class="metric-description">Low AI detection likelihood</div>
                         </div>
                         
                         <div class="metric-card">
@@ -888,10 +690,8 @@
                                 <div class="metric-icon"><i class="fas fa-book-open"></i></div>
                                 <h5>Structure Consistency</h5>
                             </div>
-                            <div class="metric-value">${result.stylometrics?.openclose?.ass_analysis?.error}</div>
-                            <div class="metric-description">
-                                ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}
-                            </div>
+                            <div class="metric-value">0.91</div>
+                            <div class="metric-description">Strong thematic flow</div>
                         </div>
                     </div>
                 </div>
@@ -968,35 +768,29 @@
                                     result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
                                     result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Vocab Entropy: ${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score} %">
+                            <div class="metric-pill" data-tooltip="Vocab Entropy: 78%">
                                 <span class="metric-label">VE</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score} %</span>
+                                <span class="metric-value">78%</span>
                             </div>
                             <div class="metric-pill" data-tooltip="Punctuation: Pass">
                                 <span class="metric-label">PR</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score}-${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score<50?'✓':'X'}</span>
+                                <span class="metric-value">✓</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Passive Voice: ${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %">
+                            <div class="metric-pill" data-tooltip="Passive Voice: 12%">
                                 <span class="metric-label">PV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.assessment} %</span>
+                                <span class="metric-value">12%</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Phrase Reuse: ${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}">
+                            <div class="metric-pill" data-tooltip="Phrase Reuse: No">
                                 <span class="metric-label">RE</span>
-                                <span class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</span>
+                                <span class="metric-value">✗</span>
                             </div>
                             <div class="metric-pill" data-tooltip="PGFI: 18%">
                                 <span class="metric-label">AI</span>
-                                <span class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"} %</span>
+                                <span class="metric-value">18%</span>
                             </div>
-                            <div class="metric-pill" data-tooltip="Consistency: ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}">
+                            <div class="metric-pill" data-tooltip="Consistency: 0.91">
                                 <span class="metric-label">OC</span>
-                                <span class="metric-value">${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}</span>
+                                <span class="metric-value">0.91</span>
                             </div>
                         </div>
                     </div>

@@ -35,17 +35,9 @@
         }
     </style>
 </head>
-<body class="teacher-body">    
+<body class="teacher-body">
     <div class="dashboard-header">
-        <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
-            <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
-            <div class="title">
-                <span class="pr">PR</span><span class="ufia">UFIA</span>
-            </div>
-        </h2>
-        <h2>
-            <i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black"> Teacher Dashboard</span>
-        </h2>
+        <h2><i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black">Prufia Teacher Dashboard</span></h2>
     </div>
     
     <div class="teacher-container">
@@ -479,6 +471,8 @@
                 const resultsDiv = document.getElementById('matchingResults');
                 resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> All matches were completed successfully.</h4>';           
                 if(files.length===1){
+                    alert(dropdownInput.value);
+                      
                     displayMatchingResults(matchData.data,1);
                 }
                 else displayMatchingResults(matchData.data);
@@ -637,10 +631,8 @@
             const studentFilter = document.getElementById('studentFilter');
             const fileFilter = document.getElementById('fileFilter');
             const confidenceFilter = document.getElementById('confidenceFilter');
-            const singleMatchContainer = document.getElementById('singleMatch');
             
             resultsList.innerHTML = '';
-            if (singleMatchContainer) singleMatchContainer.innerHTML = '';
             
             resultsCount.textContent = `${data.length} ${data.length === 1 ? 'match' : 'matches'}`;
             
@@ -654,27 +646,7 @@
             
             data.forEach(result => {
                 const resultItem = document.createElement('li');
-                resultItem.className = len === 1 ? 'single-result-container' : 'result-item';
-                if (len === 1) {
-                    resultItem.style.cssText = `
-                        list-style-type: none; 
-                        border: 2px solid #4a89dc;
-                        border-radius: 8px;
-                        padding: 20px;
-                        margin: 20px 0;
-                        background: #f8f9fa;
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                        transition: all 0.3s ease;
-                    `;
-                    resultItem.onmouseenter = () => {
-                        resultItem.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-                        resultItem.style.transform = 'translateY(-2px)';
-                    };
-                    resultItem.onmouseleave = () => {
-                        resultItem.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                        resultItem.style.transform = 'translateY(0)';
-                    };
-                }
+                resultItem.className = 'result-item';
                 resultItem.dataset.name_or_alias = result.name_or_alias;
                 resultItem.dataset.filename = result.filename;
                 resultItem.dataset.flag = result.flag;
@@ -746,7 +718,13 @@
                         </button>
                     </div>
                 `;
-                
+                if(len!=1){
+                    resultsList.appendChild(resultItem);
+                }
+                else {
+                    const  singleMatch = document.getElementById('singleMatch');
+                    singleMatch.innerHTML =  resultItem[0];
+                }
                 
                 // Add click handler for view button
                 resultItem.querySelector('.view-btn').addEventListener('click', () => {
@@ -758,12 +736,11 @@
                     e.stopPropagation();
                     generateAndDownloadPDF(result);
                 });
-                if (len === 1) {
-                    singleMatchContainer.appendChild(resultItem);
-                } else {
-                    resultsList.appendChild(resultItem);
-                }
             });
+            if(len==1){
+                const  singleMatch = document.getElementById('singleMatch');
+                singleMatch.innerHTML =  resultItem[0];
+            }
         }
         
         function populateFilterOptions(data, property, selectElement) {

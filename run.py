@@ -243,7 +243,6 @@ def teacher():
     baselines, error = get_baselines()
     if error:
         return render_template('error.html', message=error), 500
-    
     return render_template(
         'teacher.html',
         baselines=baselines if baselines else []
@@ -541,7 +540,7 @@ def handle_match_assignments():
     
     # print("baselines--", baselines)
 
-    matchdata=workingScore(matching_files, baselines)
+    matchdata=workingScore(matching_files, baselines, socketio)
     
     return jsonify({
         'status': 'success',
