@@ -3,74 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Welcome to Prufia</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      text-align: center;
-      padding-top: 80px;
-    }
-    .title {
-      font-size: 40px;
-      font-weight: bold;
-    }
-    .pr {
-      color: #003366;
-    }
-    .ufia {
-      color: #2e8b57;
-    }
-    .slogan {
-      font-size: 18px;
-      color: #003366;
-      margin-bottom: 40px;
-    }
-    .login-box {
-      background-color: white;
-      display: inline-block;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      text-align: left;
-    }
-    .login-box label {
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-      margin-bottom: 5px;
-    }
-    .login-box input {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin-bottom: 15px;
-    }
-    .error {
-      color: #d9534f;
-      background-color: #f2dede;
-      padding: 10px;
-      border-radius: 4px;
-      margin-bottom: 15px;
-      border: 1px solid #ebccd1;
-      transition: opacity 0.5s ease-out;
-    }
-    .login-btn {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      background-color: #2e8b57;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .login-btn:hover {
-      background-color: #26764c;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/studentlogin.css') }}">
 </head>
 <body>
-  
   <div style="display:flex; flex-direction: row;justify-content:center;">
     <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
     <div class="title">
@@ -91,7 +26,6 @@
     </form>
   </div>
   <script>
-    // Hide error message after 5 seconds
     document.addEventListener('DOMContentLoaded', function() {
       const errorMessage = document.getElementById('error-message');
       if (errorMessage) {
@@ -99,11 +33,10 @@
           errorMessage.style.opacity = '0';
           setTimeout(function() {
             errorMessage.style.display = 'none';
-          }, 500); // Wait for fade out to complete
-        }, 3000); // 5 seconds
+          }, 500); 
+        }, 3000); 
       }
     });
   </script>
 </body>
-
 </html>

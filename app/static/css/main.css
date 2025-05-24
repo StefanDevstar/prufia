@@ -9,6 +9,16 @@ body {
     padding-left: 10px;
     font-size: 20px;
 }
+.title {
+    font-size: 40px;
+    font-weight: bold;
+}
+.pr {
+    color: #003366;
+}
+.ufia {
+    color: #2e8b57;
+}
 .main-title {
     text-align: center;
     margin-bottom: 30px;
