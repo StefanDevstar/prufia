@@ -564,7 +564,6 @@
                         useCORS: true,
                         letterRendering: true,
                         onclone: function(clonedDoc) {
-                            // Ensure visibility in clone
                             clonedDoc.getElementById(pdfContainer.id).style.visibility = 'visible';
                         }
                     },
@@ -577,7 +576,6 @@
                 .from(pdfContainer)
                 .save(`Prufia_Report_${result.filename.replace(/\.[^/.]+$/, "")}.pdf`)
                 .then(() => {
-                    // Clean up
                     document.body.removeChild(pdfContainer);
                     showToast('PDF downloaded successfully!', 'success');
                 })
@@ -589,7 +587,6 @@
             }, 300);
         }
 
-        // Helper function to get flag color
         function getFlagColor(flag) {
             switch(flag) {
                 case 'green': return '#e8f5e9';
@@ -995,7 +992,13 @@
         document.getElementById('studentFilter').addEventListener('change', filterResults);
         document.getElementById('fileFilter').addEventListener('change', filterResults);
         document.getElementById('confidenceFilter').addEventListener('change', filterResults);
-        
+        document.querySelector('.filter-reset').addEventListener('click', function() {
+            document.getElementById('studentFilter').value = '';
+            document.getElementById('fileFilter').value = '';
+            document.getElementById('confidenceFilter').value = '';
+            filterResults();
+            showToast('All filters have been reset', 'success');
+        });
     </script>
 </body>
 </html>

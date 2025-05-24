@@ -9,21 +9,17 @@ def submit_baseline(student_id, student_name, prompt1, prompt2, client_ip, semes
         if not prompt1 or not prompt2:
             return None, "Both prompts are required", 400
         
-        # Generate new salt for each submission
         salt = os.urandom(16)
         key = generate_key(os.getenv("SEC_PROTECT", "default-fallback"), salt)
         
-        # Encrypt prompts
         encrypted_p1 = encrypt(prompt1, key)
         encrypted_p2 = encrypt(prompt2, key)
 
-        # Prepare storage
         folder = os.path.join(current_app.root_path, 
                            current_app.config['BASELINE_FOLDER'], 
                            str(student_id))
         os.makedirs(folder, exist_ok=True)
         
-        # Save encrypted files
         file_id = str(uuid.uuid4())
         p1_path = os.path.join(folder, f"baseline1_{file_id}.enc")
         p2_path = os.path.join(folder, f"baseline2_{file_id}.enc")
@@ -33,7 +29,6 @@ def submit_baseline(student_id, student_name, prompt1, prompt2, client_ip, semes
         with open(p2_path, 'w') as f:
             f.write(encrypted_p2)
 
-        # Store in database
         conn = db_connection()
         try:
             with conn.cursor() as cursor:
@@ -56,7 +51,6 @@ def submit_baseline(student_id, student_name, prompt1, prompt2, client_ip, semes
             
         except Exception as db_error:
             conn.rollback()
-            # Clean up files if DB operation failed
             for path in [p1_path, p2_path]:
                 if os.path.exists(path):
                     os.remove(path)
@@ -73,7 +67,7 @@ def getstudents():
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT * FROM students")
-            result = cursor.fetchall()  # Fetch all records
+            result = cursor.fetchall()  
             
         return {
             "status": "success",
@@ -92,16 +86,16 @@ def getstudentNamebyId(id):
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT name_or_alias FROM students WHERE id=%s", (id,))
-            result = cursor.fetchone()  # Fetch the record
+            result = cursor.fetchone()  
             
-            if result:  # If a student is found
-                return result[0]  # Return just the name_or_alias (first column)
+            if result:  
+                return result[0]  
             else:
-                return None  # Return None if no student found
+                return None  
 
     except Exception as db_error:
         conn.rollback()
-        print(f"Database error: {str(db_error)}")  # Log error (optional)
-        return None  # Return None on error
+        print(f"Database error: {str(db_error)}")  
+        return None  
     finally:
         conn.close()
