@@ -115,6 +115,39 @@ def manage_semesters():
     ]
     return render_template('admin/semesters.html', semesters=sample_semesters)
 
+
+
+@app.route('/update_submission_status', methods=['POST'])
+def update_submission_status():
+    data = request.get_json()
+    submission_id = data.get('submission_id')
+    new_status = data.get('new_status')
+    
+    # Here you would update the submission in your database
+    # For now, we'll just return a success message
+    return jsonify({
+        'success': True,
+        'message': f'Status updated to {new_status}'
+    })
+
+
+
+@app.route('/submissions')
+def manage_submissions():
+    submissionsData = [
+        { 'id': 'S1001', 'name': 'John Doe', 'date': '2023-05-15', 'requested': 1, 'status': 'pending' },
+        { 'id': 'S1002', 'name': 'Jane Smith', 'date': '2023-05-14', 'requested': 0, 'status': 'approved' },
+        { 'id': 'S1003', 'name': 'Robert Johnson', 'date': '2023-05-13', 'requested': 1, 'status': 'rejected' },
+        { 'id': 'S1004', 'name': 'Emily Davis', 'date': '2023-05-12', 'requested': 0, 'status': 'approved' },
+        { 'id': 'S1005', 'name': 'Michael Wilson', 'date': '2023-05-11', 'requested': 1, 'status': 'pending' },
+        { 'id': 'S1006', 'name': 'Sarah Brown', 'date': '2023-05-10', 'requested': 0, 'status': 'approved' },
+        { 'id': 'S1007', 'name': 'David Lee', 'date': '2023-05-09', 'requested': 1, 'status': 'pending' },
+        { 'id': 'S1008', 'name': 'Jessica Taylor', 'date': '2023-05-08', 'requested': 1, 'status': 'rejected' },
+        { 'id': 'S1009', 'name': 'Daniel Anderson', 'date': '2023-05-07', 'requested': 0, 'status': 'approved' },
+        { 'id': 'S1010', 'name': 'Lisa Martinez', 'date': '2023-05-06', 'requested': 1, 'status': 'pending' }
+    ]
+    return render_template('admin/submissions.html', submissions=submissionsData)
+
 @app.route('/semester/<semester_id>')
 def semester_details(semester_id):
     sample_data = {

@@ -14,17 +14,11 @@ def get_repeated_ngrams(text, min_n=3, max_n=5, min_count=2):
     Returns:
         Dictionary of {n_gram_length: {phrase: count}}
     """
-    # Clean and tokenize text
     words = word_tokenize(text.lower())
-    words = [word for word in words if word.isalnum()]  # Remove punctuation
-    
+    words = [word for word in words if word.isalnum()]  
     repeated_phrases = defaultdict(dict)
-    
     for n in range(min_n, max_n + 1):
-        # Generate all n-grams
         phrase_counts = Counter(ngrams(words, n))
-        
-        # Filter for repeated phrases
         for phrase, count in phrase_counts.items():
             if count >= min_count:
                 phrase_text = ' '.join(phrase)
@@ -37,12 +31,10 @@ def compare_repeated_phrases(assess_text, baseline1_text, baseline2_text):
     Compare repeated phrase patterns between assessment and baseline texts
     Returns analysis with metrics and recommendations
     """
-    # Analyze all texts
     assess_phrases = get_repeated_ngrams(assess_text)
     baseline1_phrases = get_repeated_ngrams(baseline1_text)
     baseline2_phrases = get_repeated_ngrams(baseline2_text)
     
-    # Calculate metrics
     def count_total_repeats(phrase_dict):
         return sum(len(phrases) for phrases in phrase_dict.values())
     
@@ -51,7 +43,6 @@ def compare_repeated_phrases(assess_text, baseline1_text, baseline2_text):
     baseline2_count = count_total_repeats(baseline2_phrases)
     baseline_avg = (baseline1_count + baseline2_count) / 2
     
-    # Generate results
     results = {
         'repeated_phrases': {
             'assessment': assess_phrases,
@@ -70,7 +61,6 @@ def compare_repeated_phrases(assess_text, baseline1_text, baseline2_text):
         }
     }
     
-    # Generate recommendations
     recommendations = []
     if assess_count > baseline_avg * 1.5:
         recommendations.append(
@@ -94,7 +84,6 @@ def compare_repeated_phrases(assess_text, baseline1_text, baseline2_text):
     
     results['recommendations'] = recommendations
     
-    # Add flagged phrases that appear in assessment but not baselines
     assess_unique_phrases = set()
     for n in assess_phrases:
         for phrase in assess_phrases[n]:
@@ -110,7 +99,6 @@ def compare_repeated_phrases(assess_text, baseline1_text, baseline2_text):
 
 # Example usage
 if __name__ == "__main__":
-    # Example texts with some repeated phrases
     assess_text = (
         "The results indicate that the model performs well. "
         "The results indicate that accuracy is high. "

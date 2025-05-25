@@ -157,12 +157,15 @@
         }
 
         function loadContent(url) {
+            console.log("ssssssssssssssssssssssssssssssss")
             fetch(url)
                 .then(response => {
+                    console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxx")
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.text();
                 })
                 .then(html => {
+                    console.log("vvvvvvvvvvvvvvvvvvvvv")
                     document.querySelector('.main-content').innerHTML = html;
                     if (url.includes('passcode')) {
                         initPasscodePage();

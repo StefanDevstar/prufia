@@ -45,11 +45,16 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="primary-button">
-                        <i class="fas fa-cloud-upload-alt"></i> Upload Files
-                    </button>
-                    <button type="reset" id="clearSelectionBtn" class="secondary-button">
-                        <i class="fas fa-trash-alt"></i> Clear All
+                    <div class="action-buttons">
+                        <button type="submit" class="primary-button">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload and Match
+                        </button>
+                        <button type="reset" id="clearSelectionBtn" class="secondary-button">
+                            <i class="fas fa-trash-alt"></i> Clear Files
+                        </button>
+                    </div>                    
+                    <button type="reset" id="resetMatch"  style="background-color: #ff9800; color: white" class="secondary-button">
+                        <i class="fas fa-sync-alt"></i> Reset Match
                     </button>
                 </div>
             </form>            
@@ -479,44 +484,7 @@
             pdfContainer.innerHTML=``;
             pdfContainer.innerHTML = `
             <style>
-                    .pdf-header {
-                        color: #4a6fa5;
-                        border-bottom: 2px solid #4a6fa5;
-                        padding-bottom: 10px;
-                        margin-bottom: 20px;
-                    }
-                    .pdf-title {
-                        color: #2c3e50;
-                        margin-top: 20px;
-                    }
-                    .pdf-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 15px;
-                        font-size: 14px;
-                    }
-                    .pdf-table th, .pdf-table td {
-                        padding: 10px;
-                        border: 1px solid #ddd;
-                        text-align: left;
-                    }
-                    .pdf-table th {
-                        background-color: #f5f7fa;
-                        font-weight: bold;
-                        width: 30%;
-                    }
-                    .pdf-footer {
-                        margin-top: 30px;
-                        font-size: 12px;
-                        color: #666;
-                        text-align: center;
-                    }
-                    .score-badge {
-                        padding: 4px 12px;
-                        border-radius: 12px;
-                        font-weight: 500;
-                        display: inline-block;
-                    }
+                    
                 </style>
                 <h1 class="pdf-header">Prufia Matching Report</h1>
                 <div>
@@ -998,6 +966,37 @@
             document.getElementById('confidenceFilter').value = '';
             filterResults();
             showToast('All filters have been reset', 'success');
+        });
+        document.getElementById('resetMatch').addEventListener('click', function() {
+            document.getElementById('assignmentFiles').value = '';
+            const filePreviews = document.getElementById('filePreviews');
+            filePreviews.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <p>No files selected</p>
+                </div>
+            `;
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Cleared';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 1500);
+
+            displayMatchingResults([]);
+
+            // matchingResults = [];
+            // document.getElementById('resultsList').innerHTML = '';
+            // document.getElementById('resultsCount').textContent = '0 matches';
+            // document.getElementById('detailContent').innerHTML = '<p>Select a result to view details</p>';
+            // document.getElementById('studentFilter').value = '';
+            // document.getElementById('fileFilter').value = '';
+            // document.getElementById('confidenceFilter').value = '';
+            // showToast('All matches have been reset', 'success');
+            // const originalHTML = this.innerHTML;
+            // this.innerHTML = '<i class="fas fa-check"></i> Reset Complete';
+            // setTimeout(() => {
+            //     this.innerHTML = originalHTML;
+            // }, 1500);
         });
     </script>
 </body>
