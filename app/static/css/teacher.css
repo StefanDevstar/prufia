@@ -28,10 +28,12 @@
         }
         .dropdown-container {          
             font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: space-between;
         }
         
         .dropdown-input {
-            width: 70%;
+            width: 50%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;

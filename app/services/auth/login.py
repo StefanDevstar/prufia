@@ -53,7 +53,6 @@ def handle_login():
                 (student_id,)
             )
             affected_rows = cursor.rowcount
-            print(f"UPDATE affected {affected_rows} rows")
 
             if affected_rows == 0:
                 print("WARNING: No rows updated - possible race condition")
@@ -61,7 +60,6 @@ def handle_login():
 
             # 4. EXPLICITLY COMMIT THE TRANSACTION
             conn.commit()
-            print("UPDATE committed successfully")
 
             return {
                 'student_id': student_id,
