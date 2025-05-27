@@ -17,7 +17,6 @@ def handle_login():
     try:
         conn = db_connection()
         with conn.cursor() as cursor:
-            # 1. Fetch student
             cursor.execute(
                 "SELECT id, name_or_alias FROM students WHERE name_or_alias=%s",
                 (name,)
@@ -29,7 +28,6 @@ def handle_login():
 
             student_id = student[0]
 
-            # 2. Check passcode
             cursor.execute(
                 "SELECT passcode, used FROM passcode WHERE stdId=%s",
                 (student_id,)
@@ -45,9 +43,26 @@ def handle_login():
                 return {'error': 'Passcode already used'}, 403
             if code != stored_passcode:
                 return {'error': 'Incorrect passcode'}, 401
+            
+            # Getting baselineID
+            cursor.execute(
+                "SELECT id  FROM submissions WHERE student_id=%s",
+                (student_id,)
+            )
+            submiss = cursor.fetchone()
+            submiss_id = submiss[0]
+            # Get approved status
+            cursor.execute(
+                "SELECT status  FROM resubmit_request WHERE base_id=%s",
+                (submiss_id,)
+            )
+            submiss_state = cursor.fetchone()
+            enabled = submiss_state[0]
 
-            # 3. Update passcode - ADD DEBUGGING
-            print(f"Attempting to update passcode for student {student_id}")
+            if enabled==1:
+                return {'error': 'Not yet approved'}, 405
+
+
             cursor.execute(
                 "UPDATE passcode SET used=1 WHERE stdId=%s AND used=0",
                 (student_id,)
@@ -58,7 +73,6 @@ def handle_login():
                 print("WARNING: No rows updated - possible race condition")
                 return {'error': 'Passcode already used'}, 403
 
-            # 4. EXPLICITLY COMMIT THE TRANSACTION
             conn.commit()
 
             return {

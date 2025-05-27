@@ -152,22 +152,65 @@
             }
         }
 
+
+
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                alert("sssssssssssssssssdddddddddddddddddddddddddddd")
+                const studentId = this.getAttribute('data-id');
+                console.log("studentid===",studentId)
+                fetch(`/view_submission/${studentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.getElementById('submissionDetails').innerHTML = 
+                                `<p class="text-danger">${data.error}</p>`;
+                        } else {
+                            let details = '';
+                            for (const [key, value] of Object.entries(data)) {
+                                details += `<p><strong>${key.replace('_', ' ').toUpperCase()}:</strong> </p><p style="padding-left: 10px;">${value}</p>`;
+                            }
+                            document.getElementById('submissionDetails').innerHTML = details;
+                        }
+                    });
+            });
+        });
         function getCSRFToken() {
             return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
+        function getScoreClass(score) {
+            if (score >= 85) return 'green';
+            if (score >= 65) return 'yellow';
+            return 'red';
+        }
 
+        function getScoreLabel(score) {
+            if (score >= 85) return 'Strong Match';
+            if (score >= 65) return 'Needs Review';
+            return 'Possible Mismatch';
+        }
         function loadContent(url) {
-            console.log("ssssssssssssssssssssssssssssssss")
             fetch(url)
                 .then(response => {
-                    console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxx")
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.text();
                 })
                 .then(html => {
-                    console.log("vvvvvvvvvvvvvvvvvvvvv")
-                    document.querySelector('.main-content').innerHTML = html;
-                    if (url.includes('passcode')) {
+                    // Create temporary container
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    
+                    // Remove any script tags (we handle all JS in base.html)
+                    const scripts = tempDiv.querySelectorAll('script');
+                    scripts.forEach(script => script.remove());
+                    
+                    // Insert cleaned HTML
+                    document.querySelector('.main-content').innerHTML = tempDiv.innerHTML;
+                    
+                    // Initialize any page-specific components
+                    if (url.includes('submissions')) {
+                        initSubmissionsPage();
+                    } else if (url.includes('passcode')) {
                         initPasscodePage();
                     }
                 })
@@ -175,6 +218,11 @@
                     console.error('Error loading content:', error);
                     showNotification('Failed to load content', 'danger');
                 });
+        }
+
+        function initSubmissionsPage() {
+            // Any submissions page specific initialization
+            console.log('Submissions page initialized');
         }
 
         window.initPasscodePage = function() {
@@ -288,6 +336,103 @@
         };
         document.addEventListener('DOMContentLoaded', () => {
             loadContent('/passcode'); 
+        });
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.view-btn')) {
+                const btn = e.target.closest('.view-btn');
+                const studentId = btn.getAttribute('data-id');
+                fetch(`/view_submission_admin/${studentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.getElementById('submissionDetails').innerHTML = 
+                                `<p class="text-danger">${data.error}</p>`;
+                        } else {
+                            let details = '';
+                            for (const [key, value] of Object.entries(data)) {
+                                details += `<p><strong>${key.replace('_', ' ').toUpperCase()}:</strong> </p><p style="padding-left: 10px;">${value}</p>`;
+                            }
+                            document.getElementById('submissionDetails').innerHTML = details;
+                        }
+                    });
+            }
+            
+            // Handle approve button clicks
+            if (e.target.closest('.approve-btn')) {
+                const btn = e.target.closest('.approve-btn');
+                const studentId = btn.dataset.id;
+                const nameOrAlias = btn.dataset.name_or_alias;
+                const createdAt = btn.dataset.created_at;
+                
+                // Fill the modal form fields
+                document.getElementById('instructorFeedback').textContent = nameOrAlias;
+                document.getElementById('submissionDateDisplay').textContent = createdAt;
+                document.getElementById('resubmitStudentId').value=studentId
+                document.getElementById('approveSwitch').checked=studentId
+                const row = btn.closest('tr');
+                if (row) {
+                    const rowId = row.id.replace('baseline-', '');
+                    // You can access other row-specific data here if needed
+                }
+            }
+        });
+
+        document.addEventListener('submit', function(e) {
+            if (e.target.id === 'approveForm') {
+                e.preventDefault();                
+                const base_id=document.getElementById('resubmitStudentId').value
+                const is_approved=document.getElementById('approveSwitch').checked
+                if (base_id) {
+                    fetch('/approve-endpoint', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            base_id: base_id,
+                            is_approved:is_approved
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Hide modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
+                        modal.hide();
+                        
+                        // Show success message
+                        showNotification("Approved successfully!", "info")
+                        // Optionally refresh the page or update the UI
+                        if (data.success) {
+                            // Update the specific row in the table
+                            const row = document.getElementById(`baseline-${base_id}`);
+                            if (row) {
+                                const statusCell = row.querySelector('#status-' + base_id);
+                                if (statusCell && is_approved) {
+                                    statusCell.innerHTML = `
+                                        <span class="badge bg-success status-badge">Approved</span>
+                                        <small class="text-muted d-block">${new Date().toLocaleString()}</small>
+                                    `;
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error processing request: ' + error.message);
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        submitBtn.disabled = false;
+                        document.getElementById('submitSpinner').classList.add('d-none');
+                        document.getElementById('submitButtonText').textContent = 'Submit Approval';
+                    });
+                }
+            }
         });
     </script> 
 </body>

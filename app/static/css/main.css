@@ -51,7 +51,7 @@ label {
 input[type="text"] {
     width: 100%;
     padding: 8px;
-    margin: 5px 0 15px;
+    /* margin: 5px 0 15px; */
     box-sizing: border-box;
 }
 textarea {

@@ -1,5 +1,6 @@
 import os
 import base64
+from datetime import datetime
 from app.services.admin.common import getTime
 from app.services.db.mysql import db_connection
 from app.services.security.protect import decrypt, generate_key
@@ -17,7 +18,8 @@ from app.services.ai_engine.score import (
     analyze_semantic_flow,
     compare_opening_closing,
     analyze_opening_closing,
-    compare_repeated_phrases
+    compare_repeated_phrases,
+    getOverall
 )
 
 def getPlantext(filename, content, id):
@@ -160,6 +162,7 @@ def workingScore(assesses, baselines, socketio):
                     'func_name': assess['filename'],
                     'value':int(pros)
                 }, room='admin-room')
+                overall_score=int(getOverall(sentence_len['assessment']['ai_score'],voc_en['assess_text_analysis']['ai_score'],punctual['assess_text_analysis']['ai_score'],passiv['assess_text_analysis']['ai_score'],repeated['assess_text_analysis']['ai_score'],pgfi['phrase_repetition_score'],openclose['ai_score'] if 'ai_score' in openclose else 0))
                 item = {
                     "flag": flag,
                     "score": int(final_score * 100),
@@ -174,6 +177,7 @@ def workingScore(assesses, baselines, socketio):
                     #     'pgfi1':pgfi1,
                     #     'pgfi2':pgfi2
                     # },
+                    "overall_score":overall_score,
                     "stylometrics":{
                         "sentence_len":sentence_len,
                         "vocabulary_entropy":voc_en,
@@ -193,3 +197,29 @@ def workingScore(assesses, baselines, socketio):
     
     return matchresult
 
+def handleResubmitRequest(submissionid, feedback):
+    """
+    Handles resubmission request by inserting into resubmit_request table
+    Args:
+        submission_id: ID of the submission to resubmit
+        feedback: Feedback content for the resubmission
+    Returns:
+        tuple: (status, error) where status is boolean and error is string if any
+    """
+    conn = None
+    try:
+        conn = db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO resubmit_request 
+                (base_id, feedback, status, created_at) 
+                VALUES (%s, %s, %s, %s)""",
+                (submissionid, feedback, 1, datetime.now())
+            )
+            conn.commit()
+            return True, datetime.now(), None  # Success
+        
+    except Exception as db_error:
+        return None, f"Database error: {str(db_error)}", 500
+    finally:
+        conn.close()

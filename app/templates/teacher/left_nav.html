@@ -1,0 +1,21 @@
+<div class="position-sticky pt-3">
+    <div style="display:flex; flex-direction: row;align-items:center;">
+        <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
+        <div class="title">
+            <span class="pr">PR</span><span class="ufia">UFIA</span>
+        </div>
+    </div>
+    
+    <ul class="nav flex-column teacher-nav" >
+        <li class="nav-item">
+            <a class="nav-link" onclick="loadContent('/matches-content')">
+                <i class="bi bi-people-fill"></i> Upload & Matches
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" onclick="loadContent('/validations-content')">
+                <i class="bi bi-card-checklist"></i> Baselines
+            </a>
+        </li>
+    </ul>
+</div>

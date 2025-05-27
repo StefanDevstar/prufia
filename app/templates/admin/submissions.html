@@ -2,458 +2,621 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submissions Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/submissions.css') }}">
     <style>
-        /* Additional styles for submissions page */
+        /* Enhanced CSS styles */
+        .dashboard-header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 2rem;
+        }
+        
         .submissions-containers {
-            padding: 20px;
-            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
         }
         
         .submissions-headers {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
         
         .filter-sections {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
         }
         
-        .filter-groups {
+        .filters {
             display: flex;
-            flex-direction: column;
-            min-width: 200px;
-        }
-        
-        .filter-labels {
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #495057;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
         
         .filter-controls {
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 14px;
-            margin: 0;
-        }
-        .filters{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-            align-items: end;
-        }
-        .reset-filters {
-            align-self: flex-end;
-            padding: 8px 15px;
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .reset-filters:hover {
-            background: #5a6268;
-        }
-        
-        .submissions-tables {
             width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
         }
         
-        .submissions-tables th {
-            background: #4a6fa5;
-            color: white;
-            padding: 12px 15px;
-            text-align: left;
-        }
-        
-        .submissions-tables td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .submissions-tables tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .status-pendings {
-            color: #ffc107;
-            font-weight: 600;
-        }
-        
-        .status-approveds {
-            color: #28a745;
-            font-weight: 600;
-        }
-        
-        .status-rejecteds {
-            color: #dc3545;
-            font-weight: 600;
-        }
-        
-        .action-btns {
-            padding: 5px 10px;
-            margin-right: 5px;
+        .reset-filters {
+            background: transparent;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .approve-btns {
-            background: #28a745;
-            color: white;
-        }
-        
-        .reject-btns {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .view-btns {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        .paginations {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 5px;
-        }
-        
-        .page-btns {
-            padding: 8px 12px;
-            border: 1px solid #dee2e6;
-            background: white;
+            color: #6c757d;
             cursor: pointer;
         }
         
-        .page-btns.active {
-            background: #4a6fa5;
-            color: white;
-            border-color: #4a6fa5;
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.35em 0.65em;
+        }
+        
+        .action-btn {
+            margin-right: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .submissions-headers {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .filters {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
-<body >
-    <div class="dashboard-header">
-        <!-- <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
-            <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
-            <div class="title">
-                <span class="pr">PR</span><span class="ufia">UFIA</span>
-            </div>
-        </h2> -->
-        <h2>
-            <i class="fas fa-file-upload"></i> <span style="color:black"> Submissions Dashboard</span>
-        </h2>
-    </div>
-    
-    <div class="submissions-containers">
-        <div class="submissions-headers">
-            <h3><i class="fas fa-list"></i> Student Submissions</h3>
-            <div>
-                <button class="primary-button" id="exportBtn">
-                    <i class="fas fa-download"></i> Export to CSV
+<body>
+    <div class="container-fluid">
+        <div class="dashboard-header">
+            <h2 class="mb-0">
+                <i class="fas fa-file-upload me-2"></i>Submissions Dashboard
+            </h2>
+        </div>
+        
+        <div class="submissions-containers">
+            <div class="submissions-headers">
+                <h3 class="mb-0"><i class="fas fa-list me-2"></i>Student Submissions</h3>
+                <button class="btn btn-primary" id="exportBtn">
+                    <i class="fas fa-download me-2"></i>Export to CSV
                 </button>
             </div>
-        </div>
-        
-        <div class="filter-sections">
-            <div class="filters">
-                <div class="filter-groups">
-                    <label class="filter-labels">Name or Alias</label>
-                    <input type="text" id="nameFilter" class="filter-controls" placeholder="Filter by name...">
+            
+            <div class="filter-sections">
+                <div class="filters">
+                    <div class="filter-groups">
+                        <label class="form-label">Name or Alias</label>
+                        <input type="text" id="nameFilter" class="form-control filter-controls" placeholder="Filter by name...">
+                    </div>
+                    
+                    <div class="filter-groups">
+                        <label class="form-label">Submission Date</label>
+                        <input type="date" id="dateFilter" class="form-control filter-controls">
+                    </div>
+                    
+                    <div class="filter-groups">
+                        <label class="form-label">Requested</label>
+                        <select id="requestedFilter" class="form-select filter-controls">
+                            <option value="">All</option>
+                            <option value="1">Requested</option>
+                            <option value="0">Not Requested</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-groups">
+                        <label class="form-label">Status</label>
+                        <select id="statusFilter" class="form-select filter-controls">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
                 </div>
                 
-                <div class="filter-groups">
-                    <label class="filter-labels">Submission Date</label>
-                    <input type="date" id="dateFilter" class="filter-controls">
-                </div>
-                
-                <div class="filter-groups">
-                    <label class="filter-labels">Requested</label>
-                    <select id="requestedFilter" class="filter-controls">
-                        <option value="">All</option>
-                        <option value="1">Requested</option>
-                        <option value="0">Not Requested</option>
-                    </select>
-                </div>
-                
-                <div class="filter-groups">
-                    <label class="filter-labels">Status</label>
-                    <select id="statusFilter" class="filter-controls">
-                        <option value="">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
+                <button class="btn btn-link text-decoration-none reset-filters" id="resetFilters">
+                    <i class="fas fa-sync-alt me-1"></i>Reset Filters
+                </button>
             </div>
             
-            <button class="reset-filters" id="resetFilters">
-                <i class="fas fa-sync-alt"></i> Reset
-            </button>
-        </div>
-        
-        <div class="table-responsives">
-            <table class="submissions-tables">
-                <thead>
-                    <tr>
-                        <th>Student ID</th>
-                        <th>Name or Alias</th>
-                        <th>Submission Date</th>
-                        <th>Requested</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="submissionsTableBody">
-                    {% for submission in submissions %}
-                    <tr>
-                        <td>{{ submission.id }}</td>
-                        <td>{{ submission.name }}</td>
-                        <td>{{ submission.date }}</td>
-                        <td>{{ 'Yes' if submission.requested == 1 else 'No' }}</td>
-                        <td class="status-{{ submission.status }}">
-                            {{ submission.status|capitalize }}
-                        </td>
-                        <td>
-                            <button class="action-btns view-btns" data-id="{{ submission.id }}">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            {% if submission.status == 'pending' %}
-                            <button class="action-btns approve-btns" data-id="{{ submission.id }}">
-                                <i class="fas fa-check"></i> Approve
-                            </button>
-                            <button class="action-btns reject-btns" data-id="{{ submission.id }}">
-                                <i class="fas fa-times"></i> Reject
-                            </button>
-                            {% elif submission.status == 'rejected' %}
-                            <button class="action-btns approve-btns" data-id="{{ submission.id }}">
-                                <i class="fas fa-check"></i> Approve
-                            </button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="paginations">
-            <button class="page-btns"><i class="fas fa-angle-double-left"></i></button>
-            <button class="page-btns active">1</button>
-            <button class="page-btns">2</button>
-            <button class="page-btns">3</button>
-            <button class="page-btns"><i class="fas fa-angle-double-right"></i></button>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name/Alias</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in baselines %}
+                        <tr id="baseline-{{ item.id }}">
+                            <td>{{ item.student_id }}</td>
+                            <td>{{ item.name_or_alias }}</td>
+                            <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '' }}</td>
+                            <td id="status-{{ item.id }}">
+                                {% if item.status is none %}
+                                    <span class="badge bg-success status-badge">Original</span>
+                                {% elif item.status == 1 %}
+                                    <span class="badge bg-warning status-badge">Requested</span>
+                                    <small class="text-muted d-block">{{ item.requested_time.strftime('%Y-%m-%d %H:%M') if item.requested_time else '' }}</small>
+                                {% elif item.status == 2 %}
+                                    <span class="badge bg-success status-badge">Approved</span>
+                                    <small class="text-muted d-block">{{ item.approved_time.strftime('%Y-%m-%d %H:%M') if item.approved_time else '' }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary action-btn view-btn" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#baselineModal"
+                                        data-id="{{ item.student_id }}">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
+                                <button class="btn btn-sm btn-success action-btn approve-btn"
+                                        data-bs-toggle="modal"
+                                        data-name_or_alias="{{ item.name_or_alias }}" 
+                                        data-created_at="{{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '' }}"                            
+                                        data-bs-target="#approveModal"
+                                        data-id="{{ item.id }}"
+                                        {% if item.status is none or item.status == 2 %}disabled{% endif %}>
+                                    <i class="fas fa-check-circle me-1"></i>Approve
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-    
-    <div id="toast" class="toast"></div>
-    
-    <script>
-        const submissionsData = JSON.parse('{{ submissions|tojson|safe }}');
-        
-        function renderTable(data) {
-            const tableBody = document.getElementById('submissionsTableBody');
-            tableBody.innerHTML = '';
-            
-            data.forEach(submission => {
-                const row = document.createElement('tr');
-                
-                // Format status display
-                let statusClass = `status-${submission.status}`;
-                let statusText = submission.status.charAt(0).toUpperCase() + submission.status.slice(1);
-                
-                // Format requested display
-                const requestedText = submission.requested ? 'Yes' : 'No';
-                
-                // Create action buttons based on status
-                let actionButtons = `
-                    <button class="action-btn view-btn" data-id="${submission.id}">
-                        <i class="fas fa-eye"></i> View
+
+    <!-- View Submission Modal -->
+    <div class="modal fade" id="baselineModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Submission Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="submissionDetails">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5 class="mt-3 text-muted">Loading submission details...</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close
                     </button>
-                `;
-                
-                if (submission.status === 'pending') {
-                    actionButtons += `
-                        <button class="action-btn approve-btn" data-id="${submission.id}">
-                            <i class="fas fa-check"></i> Approve
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve Resubmission Modal -->
+    <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Approve Resubmission</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="approveForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="resubmitStudentId" name="student_id">
+                        
+                        <div class="alert alert-info d-flex align-items-center mb-4">
+                            <i class="fas fa-info-circle me-3 fs-4"></i>
+                            <div>
+                                <h5 class="alert-heading mb-2">Resubmission Request</h5>
+                                <p class="mb-0">Review the request details below</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Request Details</h6>
+                                <!-- <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-user-graduate text-primary me-3"></i>
+                                    <div>
+                                        <small class="text-muted">Student</small>
+                                        <div id="studentNameDisplay" class="fw-semibold">Loading...</div>
+                                    </div>
+                                </div> -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-calendar-alt text-primary me-3"></i>
+                                    <div>
+                                        <small class="text-muted">Submission Date</small>
+                                        <div id="submissionDateDisplay" class="fw-semibold">Loading...</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-comment-dots text-primary me-3 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">Instructor Feedback</small>
+                                        <div id="instructorFeedback" class="bg-light rounded">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="approveSwitch" checked>
+                            <label class="form-check-label" for="approveSwitch">
+                                <span class="fw-semibold">Approve this resubmission request</span>
+                                <small class="d-block text-muted">Uncheck to reject the request</small>
+                            </label>
+                        </div>
+                        
+                        <!-- <div class="mb-3">
+                            <label for="adminComments" class="form-label">Additional Comments</label>
+                            <textarea class="form-control" id="adminComments" name="adminComments" rows="3" 
+                                    placeholder="Add any additional feedback for the student..."></textarea>
+                        </div> -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span id="submitButtonText">Submit Approval</span>
+                            <span id="submitSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
                         </button>
-                        <button class="action-btn reject-btn" data-id="${submission.id}">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    `;
-                } else if (submission.status === 'rejected') {
-                    actionButtons += `
-                        <button class="action-btn approve-btn" data-id="${submission.id}">
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                    `;
-                }
-                
-                row.innerHTML = `
-                    <td>${submission.id}</td>
-                    <td>${submission.name}</td>
-                    <td>${submission.date}</td>
-                    <td>${requestedText}</td>
-                    <td class="${statusClass}">${statusText}</td>
-                    <td>${actionButtons}</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-            
-            // Add event listeners to action buttons
-            addButtonEventListeners();
-        }
-        
-        function filterSubmissions() {
-            const nameFilter = document.getElementById('nameFilter').value.toLowerCase();
-            const dateFilter = document.getElementById('dateFilter').value;
-            const requestedFilter = document.getElementById('requestedFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-            
-            const filteredData = submissionsData.filter(submission => {
-                const nameMatch = submission.name.toLowerCase().includes(nameFilter);
-                const dateMatch = dateFilter ? submission.date === dateFilter : true;
-                const requestedMatch = requestedFilter !== '' ? 
-                    submission.requested == requestedFilter : true;
-                const statusMatch = statusFilter ? submission.status === statusFilter : true;
-                
-                return nameMatch && dateMatch && requestedMatch && statusMatch;
-            });
-            
-            renderTable(filteredData);
-        }
-        
-        document.getElementById('resetFilters').addEventListener('click', function() {
-            document.getElementById('nameFilter').value = '';
-            document.getElementById('dateFilter').value = '';
-            document.getElementById('requestedFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            
-            renderTable(submissionsData);
-            showToast('All filters have been reset', 'success');
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<style>
+.pre-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.card-header {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.text-muted.small {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fw-bold {
+    font-weight: 600 !important;
+}
+
+.bg-light {
+    background-color: #f8fafc !important;
+}
+
+.alert i {
+    flex-shrink: 0;
+}
+</style>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Initialize Socket.IO
+        const socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            query: { 'user-type': 'admin' }
         });
-        
-        function viewSubmission(submissionId) {
-            showToast(`Viewing submission ${submissionId}`, 'info');
-            console.log(`View submission: ${submissionId}`);
-        }
-        
-        function updateSubmissionStatus(submissionId, newStatus) {
-            fetch('/update_submission_status', {
+
+        socket.on('connect', () => {
+            console.log('Socket connected');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+        });
+
+        socket.on('resubmit-request', (data) => {
+            // const row = document.querySelector(`tr[data-id="${data.submission_id}"]`);
+            // if (!row) return;
+            
+            // const statusCell = row.querySelector(`#status-${data.submission_id}`);
+            // if (statusCell) {
+            //     statusCell.innerHTML = `
+            //         <span class="badge bg-warning status-badge">${data.status}</span>
+            //         <small class="text-muted d-block">${new Date(data.requested_time).toLocaleString()}</small>
+            //     `;
+            // }
+            
+            // const resubmitBtn = row.querySelector('.resubmit-btn');
+            // if (resubmitBtn) resubmitBtn.disabled = true;
+            
+            // showNotification(`Resubmission requested for student ${data.student_id}`);
+        });
+
+        // View submission details
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+
+                const studentId = this.getAttribute('data-id');
+                const modalContent = document.getElementById('submissionDetails');
+                const modal = new bootstrap.Modal(document.getElementById('baselineModal'));
+                
+                // Show loading state
+                modalContent.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="mt-3 text-muted">Loading submission details...</h5>
+                    </div>
+                `;
+                
+                modal.show();
+                
+                fetch(`/view_submission/${studentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            modalContent.innerHTML = `
+                                <div class="alert alert-danger d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="alert-heading">Error Loading Details</h5>
+                                        <p class="mb-0">${data.error}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Create tabbed interface for better organization
+                            modalContent.innerHTML = `
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card shadow-sm mb-4">
+                                            <div class="card-header bg-primary text-white">
+                                                <i class="fas fa-user-graduate me-2"></i>Student Information
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted small">STUDENT ID</h6>
+                                                    <p class="fw-bold">${data.student_id || 'N/A'}</p>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted small">NAME/ALIAS</h6>
+                                                    <p class="fw-bold">${data.name_or_alias || 'N/A'}</p>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted small">SUBMISSION DATE</h6>
+                                                    <p class="fw-bold">${data.created_at ? new Date(data.created_at).toLocaleString() : 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-8">
+                                        <div class="card shadow-sm mb-4">
+                                            <div class="card-header bg-primary text-white">
+                                                <i class="fas fa-file-contract me-2"></i>Submission Content
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-4">
+                                                    <h6 class="text-muted small">BASELINE 1</h6>
+                                                    <div class="bg-light p-3 rounded pre-scrollable" style="max-height: 200px;">
+                                                        <pre class="mb-0">${data.baseline1 || 'No content available'}</pre>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-4">
+                                                    <h6 class="text-muted small">BASELINE 2</h6>
+                                                    <div class="bg-light p-3 rounded pre-scrollable" style="max-height: 200px;">
+                                                        <pre class="mb-0">${data.baseline2 || 'No content available'}</pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        ${data.feedback ? `
+                                        <div class="card shadow-sm">
+                                            <div class="card-header bg-warning text-dark">
+                                                <i class="fas fa-comment-dots me-2"></i>Student Name
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="bg-light p-3 rounded">
+                                                    <p class="mb-0">${data.feedback}</p>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    ${data.requested_time ? new Date(data.requested_time).toLocaleString() : 'No timestamp available'}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        modalContent.innerHTML = `
+                            <div class="alert alert-danger d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                <div>
+                                    <h5 class="alert-heading">Connection Error</h5>
+                                    <p class="mb-0">Failed to load submission details. Please try again.</p>
+                                </div>
+                            </div>
+                        `;
+                        console.error('Error:', error);
+                    });
+            });
+        });
+        // Set up resubmit/approve modal
+        document.querySelectorAll('.approve-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const submissionId = this.getAttribute('data-id');
+                document.getElementById('approveStudentId').value = submissionId;
+                
+                // Fetch submission details
+                fetch(`/get_submission_details/${submissionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error(data.error);
+                            return;
+                        }
+                        
+                        document.getElementById('studentNameDisplay').textContent = 
+                            data.name_or_alias || 'Unknown Student';
+                        document.getElementById('submissionDateDisplay').textContent = 
+                            data.created_at || 'Unknown date';
+                        document.getElementById('instructorFeedback').textContent = 
+                            data.feedback || "No additional feedback provided";
+                    })
+                    .catch(error => {
+                        console.error('Error fetching submission details:', error);
+                    });
+            });
+        });
+
+        // Handle approve form submission
+        document.getElementById('approveForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitText = submitBtn.querySelector('#submitButtonText');
+            const spinner = submitBtn.querySelector('#submitSpinner');
+            
+            submitText.textContent = 'Processing...';
+            spinner.classList.remove('d-none');
+            submitBtn.disabled = true;
+            
+            const formData = {
+                id: document.getElementById('resubmitStudentId').value,
+                is_approved: document.getElementById('approveSwitch').checked,
+                comments: document.getElementById('adminComments').value
+            };
+            console.log("formData===",formData)
+            fetch('/approve_resubmission', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    submission_id: submissionId,
-                    new_status: newStatus
-                })
+                body: JSON.stringify(formData)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update local data
-                    const submission = submissionsData.find(s => s.id === submissionId);
-                    if (submission) {
-                        submission.status = newStatus;
-                        filterSubmissions();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('resubmitModal'));
+                    modal.hide();
+                    
+                    showSuccessNotification(data.message || 'Action completed successfully');
+                    
+                    // Update the status in the table
+                    const statusCell = document.querySelector(`#status-${formData.id}`);
+                    if (statusCell) {
+                        statusCell.innerHTML = `
+                            <span class="badge ${formData.is_approved ? 'bg-success' : 'bg-danger'} status-badge">
+                                ${formData.is_approved ? 'Approved' : 'Rejected'}
+                            </span>
+                            <small class="text-muted d-block">${new Date().toLocaleTimeString()}</small>
+                        `;
                     }
-                    showToast(`Submission ${submissionId} status updated to ${newStatus}`, 'success');
+                    
+                    // Disable the button
+                    const btn = document.querySelector(`.resubmit-btn[data-id="${formData.id}"]`);
+                    if (btn) btn.disabled = true;
                 } else {
-                    showToast(`Failed to update status: ${data.message}`, 'error');
+                    showErrorNotification(data.error || 'Failed to process request');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('Error updating submission status', 'error');
+                showErrorNotification('An error occurred while processing your request');
+            })
+            .finally(() => {
+                submitText.textContent = 'Submit Approval';
+                spinner.classList.add('d-none');
+                submitBtn.disabled = false;
             });
-        }
-        
-        document.getElementById('exportBtn').addEventListener('click', function() {
-            let csv = 'Student ID,Name or Alias,Submission Date,Requested,Status\n';
-            
-            submissionsData.forEach(submission => {
-                csv += `"${submission.id}","${submission.name}","${submission.date}",` +
-                      `"${submission.requested ? 'Yes' : 'No'}","${submission.status}"\n`;
-            });
-            
-            // Create download link
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'submissions_export.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showToast('CSV export downloaded', 'success');
         });
-        
-        function showToast(message, type = 'info', duration = 3000) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type}`;
-            toast.classList.add('show');
+
+        // Notification functions
+        function showSuccessNotification(message) {
+            const toastHTML = `
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div class="toast show align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-check-circle me-2"></i>
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const container = document.createElement('div');
+            container.innerHTML = toastHTML;
+            document.body.appendChild(container);
             
             setTimeout(() => {
-                toast.classList.remove('show');
-            }, duration);
+                container.remove();
+            }, 3000);
         }
         
-        function addButtonEventListeners() {
-            document.querySelectorAll('.view-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const submissionId = this.getAttribute('data-id');
-                    viewSubmission(submissionId);
-                });
-            });
+        function showErrorNotification(message) {
+            const toastHTML = `
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div class="toast show align-items-center text-white bg-danger" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            document.querySelectorAll('.approve-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const submissionId = this.getAttribute('data-id');
-                    updateSubmissionStatus(submissionId, 'approved');
-                });
-            });
+            const container = document.createElement('div');
+            container.innerHTML = toastHTML;
+            document.body.appendChild(container);
             
-            document.querySelectorAll('.reject-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const submissionId = this.getAttribute('data-id');
-                    updateSubmissionStatus(submissionId, 'rejected');
-                });
-            });
+            setTimeout(() => {
+                container.remove();
+            }, 3000);
         }
-        
-        document.getElementById('nameFilter').addEventListener('input', filterSubmissions);
-        document.getElementById('dateFilter').addEventListener('change', filterSubmissions);
-        document.getElementById('requestedFilter').addEventListener('change', filterSubmissions);
-        document.getElementById('statusFilter').addEventListener('change', filterSubmissions);
-        
-        // Initial render
-        document.addEventListener('DOMContentLoaded', function() {
-            addButtonEventListeners();
+
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     </script>
 </body>

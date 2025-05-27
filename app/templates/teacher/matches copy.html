@@ -1,0 +1,160 @@
+
+
+
+<div class="teacher-container">
+    <div style="width: 47%; padding:10px;">
+        <form id="uploadForm" class="upload-form">
+            <div class="form-header">
+                <h3><i class="fas fa-upload"></i> Upload Assignments</h3>
+                <p class="subtitle">Upload files for your students to complete</p>
+            </div>
+            <div class="form-group">
+                <label class="file-input-label">
+                    <span class="label-text">Select files (multiple allowed)</span>
+                    <div class="file-input-wrapper">
+                        <i class="fas fa-folder-open"></i>
+                        <span class="file-input-text">Choose files or drag & drop</span>
+                        <input type="file" id="assignmentFiles" name="files" multiple class="hidden-file-input">
+                    </div>
+                </label>
+                
+                <div id="filePreviews" class="file-preview-container">
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <p>No files selected</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <div class="action-buttons">
+                    <button type="submit" class="primary-button">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload and Match
+                    </button>
+                    <button type="reset" id="clearSelectionBtn" class="secondary-button">
+                        <i class="fas fa-trash-alt"></i> Clear Files
+                    </button>
+                </div>                    
+                <button type="reset" id="resetMatch" style="background-color: #ff9800; color: white" class="secondary-button">
+                    <i class="fas fa-sync-alt"></i> Reset Match
+                </button>
+            </div>
+        </form>            
+        <div id="uploadResults"></div>
+        <div class="confidence">
+            <h3><i class="fas fa-info-circle"></i> Confidence Score Guide</h3>
+            <ul style="list-style: none; padding-left: 0;">
+                <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-green">Over 85</span>
+                    <div>
+                        <strong>Confirmed Match</strong><br>
+                        Writing aligns closely with the student's known style.
+                    </div>
+                </li>
+                <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-yellow">70-84</span>
+                    <div>
+                        <strong>Moderate Match</strong><br>
+                        Writing shows variation from the student's usual pattern.
+                    </div>
+                </li>
+                <li style="display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-red">Below 70</span>
+                    <div>
+                        <strong>Authorship Unclear</strong><br>
+                        Document doesn't align with student's typical structure.
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="results-container">
+        <div class="results-sidebar">
+            <div class="dropdown-container">                     
+                <div>
+                    Select students : 
+                    <input type="text" class="dropdown-input" placeholder="Select options" readonly>
+                    <div class="dropdown-list">
+                        <div class="dropdown-item select-all">
+                            <input type="checkbox" id="select-all" checked> 
+                            <label for="select-all">Select All</label>
+                        </div>
+                        {% for item in baselines %}
+                        <div class="dropdown-item">
+                            <input type="checkbox" id="option{{ loop.index }}" value="{{ item.name_or_alias }}" checked>
+                            <label for="option{{ loop.index }}">{{ item.name_or_alias }}</label>
+                        </div>
+                        {% endfor %}
+                    </div> 
+                </div> 
+                <button id="resubmitrequest" style="background-color: #ff9800; color: white; " class="secondary-button">
+                    <i class="fas fa-redo"></i> Resubmit Request
+                </button>                 
+            </div>
+            <div id="confirmModal" class="modal-overlay">
+                <div class="modal-content">
+                    <h3>Confirm Resubmission</h3>
+                    <p>Are you sure you want to resubmit the request to admin for the selected students?</p>
+                    <div class="modal-actions">
+                        <button id="cancelResubmit" class="secondary-button">Cancel</button>
+                        <button id="confirmResubmit" class="primary-button">Confirm</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-section">
+                <div class="filters-header">
+                    <h3><i class="fas fa-filter"></i> Filters</h3>
+                    <button id="resetFilters" class="primary-button">Reset Filter</button>
+                </div>
+                <div>
+                    <div class="filter-group">
+                        <label class="filter-label">Name or Alias</label>
+                        <select id="studentFilter" class="filter-select">
+                            <option value="">All Students</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Filename</label>
+                        <select id="fileFilter" class="filter-select">
+                            <option value="">All Files</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Confidence Level</label>
+                        <select id="confidenceFilter" class="filter-select">
+                            <option value="">All Levels</option>
+                            <option value="green">High (85-100%)</option>
+                            <option value="yellow">Medium (70-84%)</option>
+                            <option value="red">Low (Below 70%)</option>
+                        </select>
+                    </div>
+                </div>                  
+            </div>
+            <div class="detail-section" id="detailSection">
+                <h3><i class="fas fa-info-circle"></i> Details</h3>
+                <div class="detail-content" id="detailContent">
+                    <p>Select a result to view details</p>
+                </div>
+            </div>
+        </div>
+        <div class="results-main">
+            <div class="results-header">
+                <div class="results-title">Matching Results</div>
+                <div class="results-count" id="resultsCount">0 matches</div>
+            </div>
+            <div id="resultsList" class="results-list"></div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="global-progress">
+    <div id="progress-bar"></div>
+</div>
+<div id="progress-status">Ready</div>
+
+

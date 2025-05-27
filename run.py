@@ -5,11 +5,13 @@ from werkzeug.utils import secure_filename
 from flask import render_template
 from dotenv import load_dotenv
 import sys
+import shutil
 from app.services.auth.login import handle_login 
-from app.services.common.getters import get_baselines, get_submissions
+from app.services.common.getters import get_baselines, get_submissions, get_last_baseline, get_requetsts,get_last_baseline_admin
 from app.services.security.protect import decrypt
+from app.services.admin.common import updateApprve
 from app.services.student.submit import submit_baseline, getstudents,getstudentNamebyId
-from app.services.teacher.business import getPlantext, workingScore
+from app.services.teacher.business import getPlantext, workingScore, handleResubmitRequest
 from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
 from flask_socketio import SocketIO
 from os.path import dirname, join
@@ -115,7 +117,36 @@ def manage_semesters():
     ]
     return render_template('admin/semesters.html', semesters=sample_semesters)
 
-
+@app.route('/approve-endpoint', methods=['POST'])
+def approve_status():
+    try:
+        data = request.get_json()
+        base_id = data.get('base_id')
+        is_approved = data.get('is_approved')
+        print("baseline===",base_id,"++",is_approved)
+        if not base_id:
+            return jsonify({
+                'success': False,
+                'message': 'Missing baseline ID',
+                'error': 'base_id_required'
+            }), 400
+        status,error=updateApprve(base_id)
+        return jsonify({
+                'success': True,
+                'message': 'Baseline successfully approved' if is_approved else 'Baseline approval rejected',
+                'data': {
+                    'base_id': base_id,
+                    'new_status': 'approved' if is_approved else 'rejected',
+                    # 'timestamp': datetime.now().isoformat()
+                }
+            })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'An error occurred processing your request',
+            'error': str(e)
+        }), 500
 
 @app.route('/update_submission_status', methods=['POST'])
 def update_submission_status():
@@ -134,19 +165,10 @@ def update_submission_status():
 
 @app.route('/submissions')
 def manage_submissions():
-    submissionsData = [
-        { 'id': 'S1001', 'name': 'John Doe', 'date': '2023-05-15', 'requested': 1, 'status': 'pending' },
-        { 'id': 'S1002', 'name': 'Jane Smith', 'date': '2023-05-14', 'requested': 0, 'status': 'approved' },
-        { 'id': 'S1003', 'name': 'Robert Johnson', 'date': '2023-05-13', 'requested': 1, 'status': 'rejected' },
-        { 'id': 'S1004', 'name': 'Emily Davis', 'date': '2023-05-12', 'requested': 0, 'status': 'approved' },
-        { 'id': 'S1005', 'name': 'Michael Wilson', 'date': '2023-05-11', 'requested': 1, 'status': 'pending' },
-        { 'id': 'S1006', 'name': 'Sarah Brown', 'date': '2023-05-10', 'requested': 0, 'status': 'approved' },
-        { 'id': 'S1007', 'name': 'David Lee', 'date': '2023-05-09', 'requested': 1, 'status': 'pending' },
-        { 'id': 'S1008', 'name': 'Jessica Taylor', 'date': '2023-05-08', 'requested': 1, 'status': 'rejected' },
-        { 'id': 'S1009', 'name': 'Daniel Anderson', 'date': '2023-05-07', 'requested': 0, 'status': 'approved' },
-        { 'id': 'S1010', 'name': 'Lisa Martinez', 'date': '2023-05-06', 'requested': 1, 'status': 'pending' }
-    ]
-    return render_template('admin/submissions.html', submissions=submissionsData)
+    requestlist, error = get_requetsts()
+    if error:
+        return render_template('error.html', message=error), 500
+    return render_template('admin/submissions.html', baselines=requestlist if requestlist else [])
 
 @app.route('/semester/<semester_id>')
 def semester_details(semester_id):
@@ -205,16 +227,18 @@ def login():
     
     session['student_id'] = result['student_id']
     session['student_name'] = result['student_name']
-
-    print(f"Emitting student-login event for student {result['student_id']}")
-    
-    # Correct emit syntax:
+    # delete path='baseline/`student_id`' directory
+    baseline_dir = os.path.join('baseline', str(result['student_id']))
+    try:
+        if os.path.exists(baseline_dir):
+            shutil.rmtree(baseline_dir)
+            app.logger.info(f"Deleted baseline directory for student {result['student_id']}")
+    except Exception as e:
+        app.logger.error(f"Error deleting baseline directory: {str(e)}")
     socketio.emit('student-login', {
         'student_id': result['student_id'],
         'new_status': 'Used',
     }, room='admin-room') 
-    
-    print("Event emitted successfully")
     return redirect(url_for('student'))
 
 @app.route('/student')
@@ -276,10 +300,82 @@ def teacher():
     baselines, error = get_baselines()
     if error:
         return render_template('error.html', message=error), 500
+    return render_template('teacher/base.html',
+        baselines=baselines if baselines else [])
+
+@app.route('/handlerequest')
+def handlerequest():
+    requestlist, error = get_requetsts()
+    if error:
+        return render_template('error.html', message=error), 500
+    return render_template('teacher/resubmitrequest.html',
+        baselines=requestlist if requestlist else [])
+
+@app.route('/api/submissions')
+def get_submissions_csv():
+    submissions = get_submissions()  # Your function to get all submissions
+    return jsonify(submissions)
+
+@app.route('/view_submission/<student_id>')
+def view_submission(student_id):
+    baselines, error, status_code = get_last_baseline(student_id)  # Unpack all 3 values
+    if error:
+        return render_template('error.html', message=error), status_code  # Use the returned status code
+    if baselines:
+        print("baselines:",baselines)
+        return jsonify(baselines)
+    return jsonify({'error': 'Submission not found'}), 404
+
+@app.route('/view_submission_admin/<student_id>')
+def view_submission_admin(student_id):
+    baselines, error, status_code = get_last_baseline_admin(student_id)  # Unpack all 3 values
+    if error:
+        return render_template('error.html', message=error), status_code  # Use the returned status code
+    if baselines:
+        print("baselines:",baselines)
+        return jsonify(baselines)
+    return jsonify({'error': 'Submission not found'}), 404
+
+@app.route('/request_resubmit', methods=['POST'])
+def request_resubmit():
+    data = request.json
+    submissionid = data.get('id')
+    feedback = data.get('feedback')
+    # print("Submission ID:", submissionid, "Feedback:", feedback)
+    success, req_time, error=handleResubmitRequest(submissionid, feedback)   
+    
+    if success:
+        request_time = req_time.now().strftime('%Y-%m-%d %H:%M:%S')
+        socketio.emit('resend-request', {
+            'baselineid':submissionid,
+            'status': 'Awaiting',
+            'requestedtime': request_time,
+        }, room='admin-room')
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': error}), 500
+
+
+@app.route('/matches-content')
+def matches_content():    
+    baselines, error = get_baselines()
+    if error:
+        return render_template('error.html', message=error), 500
     return render_template(
-        'teacher.html',
+        'teacher/matches.html',
         baselines=baselines if baselines else []
     )
+
+@app.route('/validations-content')
+def validations_content():
+    validations = [
+        {'assignment': 'Assignment 1', 'status': 'Needs review'},
+        {'assignment': 'Assignment 2', 'status': 'Needs review'}
+    ]
+    return render_template('teacher/validations.html', validations=validations)
+
+
+
 
 @app.route('/upload_assignments', methods=['POST'])
 def upload_assignments():
@@ -571,7 +667,7 @@ def handle_match_assignments():
     except FileNotFoundError:
         return jsonify({'error': 'Baseline directory not found'}), 404
     
-    # print("baselines--", baselines)
+    print("baselines--", baselines)
 
     matchdata=workingScore(matching_files, baselines, socketio)
     

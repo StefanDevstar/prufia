@@ -45,6 +45,15 @@ class TextAnalyzer:
 analyzer = TextAnalyzer()
 
 
+# • TT = Typing Tempo score
+# • KT = Keystroke Timing
+# • SF = Sentence Fingerprint
+# • PF = Pacing & Flow Drift
+# • SM = Stylometric Match
+# • EB = Edit Behavior
+# = (TT * 0.20) + (KT * 0.20) + (SF * 0.25) + (PF * 0.10) + (SM * 0.10) + (EB * 0.10) + (MC * 0.05)
+def getOverall(tt,kt,sf,pf,sm,eb,mc):
+    return tt*0.2+kt*0.2+sf*0.25+pf*0.1+sm*0.1+eb*0.1+mc*0.05
 # text = "Hello world! This is NLTK. It splits sentences."
 # output = ['Hello world!', 'This is NLTK.', 'It splits sentences.']
 def get_sentences(text):
@@ -454,6 +463,15 @@ def analyze_lexical_diversity(baseline1, baseline2, assess_text=None):
 #             results['flags'].append('FIA-PV02: Moderate passive voice usage')
     
 #     return results
+def calculate_ratio_vs_reference( ratio, reference_ratio):
+    try:
+        if reference_ratio == 0:
+            return "N/A (reference ratio is zero)"
+        if not (isinstance(ratio, (int, float)) and isinstance(reference_ratio, (int, float))):
+            return "N/A (invalid input)"
+        return f"{ratio/reference_ratio:.1%}"
+    except (TypeError, ValueError):
+        return "N/A (calculation error)"
 def passive_voice_analysis(baseline1_text, baseline2_text, assess_text=None):
     """
     Analyze passive voice usage by estimating human reference from baselines.
@@ -541,11 +559,27 @@ def passive_voice_analysis(baseline1_text, baseline2_text, assess_text=None):
             
             ai_score = min(100, ai_score)
             
+            # assessment = {
+            #     'passive_ratio': assess_data['ratio'],
+            #     'total_sentences': assess_data['total_sentences'],
+            #     'comparison': {
+            #         'ratio_vs_reference': f"{assess_data['ratio']/estimated_reference['passive_ratio']:.1%}",
+            #         'absolute_difference': f"{ratio_diff:.3f}"
+            #     },
+            #     'ai_score': int(ai_score),
+            #     'assessment': "Likely AI-generated" if ai_score >= 70 else
+            #                 "Possibly AI-generated" if ai_score >= 40 else
+            #                 "Likely human-written",
+            #     'flags': flags
+            # }
             assessment = {
                 'passive_ratio': assess_data['ratio'],
                 'total_sentences': assess_data['total_sentences'],
                 'comparison': {
-                    'ratio_vs_reference': f"{assess_data['ratio']/estimated_reference['passive_ratio']:.1%}",
+                    'ratio_vs_reference': calculate_ratio_vs_reference(
+                        assess_data['ratio'], 
+                        estimated_reference['passive_ratio']
+                    ),
                     'absolute_difference': f"{ratio_diff:.3f}"
                 },
                 'ai_score': int(ai_score),
@@ -554,6 +588,9 @@ def passive_voice_analysis(baseline1_text, baseline2_text, assess_text=None):
                             "Likely human-written",
                 'flags': flags
             }
+
+            # Then add this helper method to your class:
+            
     
     # --- FINAL RESULTS ---
     return {
@@ -812,9 +849,15 @@ def analyze_punctuation_patterns(baseline1, baseline2, assess_text=None):
             
             assessment = {
                 'metrics': assess_data,
-                'comparison': {
-                    'gap_vs_reference': f"{assess_data['avg_gap']/estimated_reference['avg_gap']:.1%}",
-                    'consistency_ratio': f"{assess_data['gap_std']/estimated_reference['gap_std']:.1%}",
+                'comparison' : {
+                    'gap_vs_reference': f"{safe_divide(assess_data['avg_gap'], estimated_reference['avg_gap'], 'N/A (ref=0)'):.1%}" 
+                        if isinstance(safe_divide(assess_data['avg_gap'], estimated_reference['avg_gap']), (int, float)) 
+                        else "N/A (ref=0)",
+                    
+                    'consistency_ratio': f"{safe_divide(assess_data['gap_std'], estimated_reference['gap_std'], 'N/A (ref=0)'):.1%}" 
+                        if isinstance(safe_divide(assess_data['gap_std'], estimated_reference['gap_std']), (int, float)) 
+                        else "N/A (ref=0)",
+                    
                     'punct_rate_diff': f"{(assess_rate - ref_rate):+.2f}"
                 },
                 'ai_score': int(ai_score),
@@ -850,6 +893,12 @@ def analyze_punctuation_patterns(baseline1, baseline2, assess_text=None):
 # text = "In conclusion, this means that AI is helpful. Therefore, we should use it."
 # print(gpt_style_phrases(text)) 
 # Output: ['in conclusion', 'this means that', 'therefore']
+def safe_divide(numerator, denominator, default="N/A"):
+    """Safe division with zero denominator handling"""
+    try:
+        return numerator / denominator if denominator != 0 else default
+    except (TypeError, ValueError):
+        return default
 def gpt_style_phrases(text):
     patterns = [
         "in conclusion", "as a result", "this means that",

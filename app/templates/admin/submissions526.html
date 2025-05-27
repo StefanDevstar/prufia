@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Submissions Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/submissions.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+</head>
+<body >
+    <div class="dashboard-header">
+        <h2>
+            <i class="fas fa-file-upload"></i> <span style="color:black"> Submissions Dashboard</span>
+        </h2>
+    </div>
+    
+    <div class="submissions-containers">
+        <div class="submissions-headers">
+            <h3><i class="fas fa-list"></i> Student Submissions</h3>
+            <div>
+                <button class="primary-button" id="exportBtn">
+                    <i class="fas fa-download"></i> Export to CSV
+                </button>
+            </div>
+        </div>
+        
+        <div class="filter-sections">
+            <div class="filters">
+                <div class="filter-groups">
+                    <label class="filter-labels">Name or Alias</label>
+                    <input type="text" id="nameFilter" class="filter-controls" placeholder="Filter by name...">
+                </div>
+                
+                <div class="filter-groups">
+                    <label class="filter-labels">Submission Date</label>
+                    <input type="date" id="dateFilter" class="filter-controls">
+                </div>
+                
+                <div class="filter-groups">
+                    <label class="filter-labels">Requested</label>
+                    <select id="requestedFilter" class="filter-controls">
+                        <option value="">All</option>
+                        <option value="1">Requested</option>
+                        <option value="0">Not Requested</option>
+                    </select>
+                </div>
+                
+                <div class="filter-groups">
+                    <label class="filter-labels">Status</label>
+                    <select id="statusFilter" class="filter-controls">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="reset-filters" id="resetFilters">
+                <i class="fas fa-sync-alt"></i> Reset
+            </button>
+        </div>
+        
+        <div class="table-responsives">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name/Alias</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in baselines %}
+                    <tr >
+                        <td>{{ item.student_id }}</td>
+                        <td>{{ item.name_or_alias }}</td>
+                        <td>{{ item.created_at }}</td>
+                        <td id="status-{{ item.id }}">
+                            {% if item.status is not none %}
+                                <span class="badge bg-warning">Requested</span>
+                                <small class="text-muted">{{ item.requested_time.strftime('%Y-%m-%d %H:%M') if item.requested_time else '' }}</small>
+                            {% else %}
+                                <span class="badge bg-success"></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary view-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#baselineModal"
+                                    data-id="{{ item.student_id }}">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-success resubmit-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#resubmitModal"
+                                    data-id="{{ item.id }}"
+                                    {% if item.status is none %}disabled{% endif %}>
+                                <i class="fas fa-check-circle"></i> Approve
+                            </button>                        
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    <div class="modal fade" id="baselineModal" tabindex="-1" aria-labelledby="submissionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submissionModalLabel">Submission Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="submissionDetails">
+                        <p>Loading submission details...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resubmit Request Modal -->
+    <div class="modal fade" id="resubmitModal" tabindex="-1" aria-labelledby="resubmitModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resubmitModalLabel">Approve Feedback</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="approveForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="resubmitStudentId" name="student_id">
+                        
+                        <div class="alert alert-info d-flex align-items-center mb-4">
+                            <i class="fas fa-info-circle me-3 fs-4"></i>
+                            <div>
+                                <h5 class="alert-heading mb-2">Resubmission Request</h5>
+                                <p class="mb-0">The instructor has requested a resubmission for this assignment.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Request Details</h6>
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-user-graduate text-primary me-3"></i>
+                                    <div>
+                                        <small class="text-muted">Student</small>
+                                        <div id="studentNameDisplay" class="fw-semibold">[Student Name]</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-calendar-alt text-primary me-3"></i>
+                                    <div>
+                                        <small class="text-muted">Submission Date</small>
+                                        <div id="submissionDateDisplay" class="fw-semibold">[Date]</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-comment-dots text-primary me-3 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">Instructor Feedback</small>
+                                        <div id="instructorFeedback" class="bg-light p-3 rounded">[Feedback text from instructor]</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="approveSwitch" checked>
+                            <label class="form-check-label" for="approveSwitch">
+                                <span class="fw-semibold">Approve this resubmission request</span>
+                                <small class="d-block text-muted">Uncheck to reject the request</small>
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="adminComments" class="form-label">Additional Comments (Optional)</label>
+                            <textarea class="form-control" id="adminComments" rows="3" 
+                                    placeholder="Add any additional feedback for the student..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Approve</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+         const socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            query: { 'user-type': 'admin' }
+        });
+        socket.on('connect', () => {
+        });
+
+        socket.on('disconnect', () => {
+        });
+
+        socket.on('connect_error', (error) => {
+        });
+
+        socket.on('resubmit-request', (data) => {
+            const row = document.querySelector(`tr[data-id="${data.submission_id}"]`);
+            if (!row) return;
+            
+            const statusCell = row.querySelector(`#submission-status-${data.submission_id}`);
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="badge bg-warning">${data.status}</span>
+                    <small class="text-muted">${new Date(data.requested_time).toLocaleString()}</small>
+                `;
+            }
+            
+            const resubmitBtn = row.querySelector('.resubmit-btn');
+            if (resubmitBtn) resubmitBtn.disabled = true;
+            
+            showNotification(`Resubmission requested for student ${data.student_id}`);
+        });
+
+        // View submission details
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const studentId = this.getAttribute('data-id');
+                console.log("studentid===",studentId)
+                fetch(`/view_submission/${studentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.getElementById('submissionDetails').innerHTML = 
+                                `<p class="text-danger">${data.error}</p>`;
+                        } else {
+                            let details = '';
+                            for (const [key, value] of Object.entries(data)) {
+                                details += `<p><strong>${key.replace('_', ' ').toUpperCase()}:</strong> </p><p style="padding-left: 10px;">${value}</p>`;
+                            }
+                            document.getElementById('submissionDetails').innerHTML = details;
+                        }
+                    });
+            });
+        });
+
+        // Set student ID for resubmit request
+        document.querySelectorAll('.resubmit-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('resubmitStudentId').value = this.getAttribute('data-id');
+            });
+        });
+        
+        // Handle resubmit request
+        document.getElementById('approveForm').addEventListener('submit', function(e) {
+            alert("efasdrew")
+            e.preventDefault();
+            const formData = {
+                id: document.getElementById('resubmitStudentId').value, 
+                // feedback: document.getElementById('feedback').value
+            };
+
+            fetch('/request_resubmit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('resubmitModal'));
+                    modal.hide();
+                    
+                    // Show success notification
+                    showSuccessNotification('Resubmission request sent successfully!');
+                    
+                    // Reset the form
+                    this.reset();
+                    
+                    // Optionally update the status in the table
+                    updateSubmissionStatus(formData.id, 'Requested');
+                } else {
+                    alert(data.error || 'Failed to send request');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred');
+            });
+        });
+
+        function showSuccessNotification(message) {
+            // Create a temporary toast if you don't have one in your HTML
+            const toastHTML = `
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header bg-success text-white">
+                            <strong class="me-auto">Success</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">${message}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Add to DOM
+            document.body.insertAdjacentHTML('beforeend', toastHTML);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                const toast = document.querySelector('#liveToast').parentElement;
+                toast.remove();
+            }, 3000);
+        }
+        function updateSubmissionStatus(submissionId, status) {
+            const statusCell = document.querySelector(`#status-${submissionId}`);
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="badge bg-warning">${status}</span>
+                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                `;
+            }
+            
+            // Disable the resubmit button
+            const resubmitBtn = document.querySelector(`button.resubmit-btn[data-id="${submissionId}"]`);
+            if (resubmitBtn) {
+                resubmitBtn.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>

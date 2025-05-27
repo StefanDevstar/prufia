@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body class="teacher-body">    
+    <div class="dashboard-header">
+        <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
+            <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
+            <div class="title">
+                <span class="pr">PR</span><span class="ufia">UFIA</span>
+            </div>
+        </h2>
+        <h2>
+            <i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black"> Teacher Dashboard</span>
+        </h2>
+    </div>
+    
+    <div class="teacher-container">
+        <div style="width: 47%; padding:10px;">
+            <form id="uploadForm" class="upload-form">
+                <div class="form-header">
+                    <h3><i class="fas fa-upload"></i> Upload Assignments</h3>
+                    <p class="subtitle">Upload files for your students to complete</p>
+                </div>
+                <div class="form-group">
+                    <label class="file-input-label">
+                        <span class="label-text">Select files (multiple allowed)</span>
+                        <div class="file-input-wrapper">
+                            <i class="fas fa-folder-open"></i>
+                            <span class="file-input-text">Choose files or drag & drop</span>
+                            <input type="file" id="assignmentFiles" name="files" multiple class="hidden-file-input">
+                        </div>
+                    </label>
+                    
+                    <div id="filePreviews" class="file-preview-container">
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <p>No files selected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <div class="action-buttons">
+                        <button type="submit" class="primary-button">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload and Match
+                        </button>
+                        <button type="reset" id="clearSelectionBtn" class="secondary-button">
+                            <i class="fas fa-trash-alt"></i> Clear Files
+                        </button>
+                    </div>                    
+                    <button type="reset" id="resetMatch"  style="background-color: #ff9800; color: white" class="secondary-button">
+                        <i class="fas fa-sync-alt"></i> Reset Match
+                    </button>
+                </div>
+            </form>            
+            <div id="uploadResults"></div>
+            <div id="matchingResults"></div>           
+            <div id="matchResults"></div>
+            <div id="singleMatch"></div>
+            <div class="confidence">
+                <h3><i class="fas fa-info-circle"></i> Confidence Score Guide</h3>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-green">Over 85</span>
+                    <div>
+                        <strong>Confirmed Match</strong><br>
+                        Writing aligns closely with the student’s known style. Small edits or grammar adjustments expected. No action needed.
+                    </div>
+                    </li>
+                    <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-yellow">70-84</span>
+                    <div>
+                        <strong>Moderate Match</strong><br>
+                        Writing shows variation from the student’s usual pattern. Could involve editing support or assistive tools. Please review for context.
+                    </div>
+                    </li>
+                    <li style="display: flex; align-items: flex-start; gap: 10px;">
+                    <span class="flag flag-pulse flag-red">Below 70</span>
+                    <div>
+                        <strong>Authorship Unclear</strong><br>
+                        This document does not align with the student’s typical structure and rhythm. Follow-up may be appropriate to verify authorship.
+                    </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="matchingResults" class="results-container">
+            <div class="results-sidebar">
+                <div class="dropdown-container">                     
+                    <div>
+                        Select students : 
+                        <input type="text" class="dropdown-input" placeholder="Select options" readonly>
+                        <div class="dropdown-list">
+                            <div class="dropdown-item select-all">
+                                <input type="checkbox" id="select-all" checked> 
+                                <label for="select-all">Select All</label>
+                            </div>
+                            {% for item in baselines %}
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="option{{ loop.index }}" value="{{ item.name_or_alias }}" checked>
+                                <label for="option{{ loop.index }}">{{ item.name_or_alias }}</label>
+                            </div>
+                            {% endfor %}
+                        </div> 
+                    </div> 
+                    <button type="reset" id="resubmitrequest"  style="background-color: #ff9800; color: white" class="secondary-button">
+                        <i class="fas fa-redo"></i> Resubmit Request
+                    </button>                 
+                </div>
+                <div id="confirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1000;">
+                    <div style="background:white; width:400px; margin:100px auto; padding:20px; border-radius:5px;">
+                        <h3>Confirm Resubmission</h3>
+                        <p>Are you sure you want to resubmit the request to admin for the selected students?</p>
+                        <div style="text-align:right; margin-top:20px;">
+                            <button id="cancelResubmit" style="padding:5px 15px; margin-right:10px;">Cancel</button>
+                            <button id="confirmResubmit" style="padding:5px 15px; background-color:#ff9800; color:white;">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filters-section">
+                    <div class="filters-header">
+                        <h3><i class="fas fa-filter"></i> Filters</h3>
+                        <button class="primary-button filter-reset">Reset Filter</button>
+                    </div>
+                    <div>
+                        <div class="filter-group">
+                            <label class="filter-label">Name or Alias</label>
+                            <select id="studentFilter" class="filter-select">
+                                <option value="">All Students</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Filename</label>
+                            <select id="fileFilter" class="filter-select">
+                                <option value="">All Files</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Confidence Level</label>
+                            <select id="confidenceFilter" class="filter-select">
+                                <option value="">All Levels</option>
+                                <option value="green">High (85-100%)</option>
+                                <option value="yellow">Medium (70-84%)</option>
+                                <option value="red">Low (Below 70%)</option>
+                            </select>
+                        </div>
+                    </div>                  
+                </div>
+                <div class="detail-section" id="detailSection">
+                    <h3><i class="fas fa-info-circle"></i> Details</h3>
+                    <div class="detail-content" id="detailContent">
+                        <p>Select a result to view details</p>
+                    </div>
+                </div>
+            </div>
+            <div class="results-main">
+                <div class="results-header">
+                    <div class="results-title">Matching Results</div>
+                    <div class="results-count" id="resultsCount">0 matches</div>
+                </div>
+                <div id="resultsList" class="results-list"></div>
+            </div>
+            
+            
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    <div id="global-progress">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="progress-status">Ready</div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- <script src="{{ url_for('static', filename='js/teacher/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/socket.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/upload.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/matching.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/filters.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher/app.js') }}"></script> -->
+
+
+    <!-- <script src="{{ url_for('static', filename='js/main.js') }}"></script>-->
+    <script src="{{ url_for('static', filename='js/teacher.js') }}"></script>   
+</body>
+</html>

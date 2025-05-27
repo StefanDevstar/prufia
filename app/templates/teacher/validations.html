@@ -1,0 +1,10 @@
+<div id="validations-content" class="content-section">
+  <h2>Baseline Validations</h2>
+  <div class="validations-container">
+    {% for validation in validations %}
+    <div class="validation-item">
+      <p>{{ validation.assignment }} - {{ validation.status }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
