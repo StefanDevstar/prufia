@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | CH Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary-color: #4361ee;
+            --primary-light: #e0e7ff;
+            --sidebar-bg: #2b2d42;
+            --sidebar-hover: #3a3d5d;
+            --content-bg: #f8f9fa;
+            --text-light: #f8f9fa;
+            --text-dark: #212529;
+            --text-gray: #6c757d;
+            --transition-speed: 0.3s;
+            --border-radius: 8px;
+            --sidebar-padding: 1.5rem;
+            --nav-item-spacing: 0.5rem;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: var(--content-bg);
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+            transition: margin-left var(--transition-speed);
+        }
+        
+        /* Sidebar Styles */
+        .left-sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: var(--text-light);
+            position: fixed;
+            height: 100vh;
+            padding: var(--sidebar-padding);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transform: translateX(0);
+            transition: transform var(--transition-speed);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 0.5rem 0 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .sidebar-header h2 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-header h2 i {
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+        }
+        
+        .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        
+        /* Scrollbar styling */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        
+        /* Navigation Styles */
+        .nav-menu {
+            list-style: none;
+            margin-top: 1rem;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.75rem;
+            padding: 0 1rem;
+        }
+        
+        .nav-item {
+            margin-bottom: var(--nav-item-spacing);
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-light);
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+            font-weight: 400;
+            font-size: 0.95rem;
+            position: relative;
+        }
+        
+        .nav-link:hover {
+            background-color: var(--sidebar-hover);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+        }
+        
+        .nav-link i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        
+        .nav-link .badge {
+            margin-left: auto;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .nav-link.active .badge {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Submenu Styles */
+        .submenu {
+            list-style: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-left: 1.5rem;
+            padding-left: 0.5rem;
+            border-left: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        .submenu.open {
+            max-height: 500px;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .submenu .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .submenu .nav-link:hover {
+            color: white;
+        }
+        
+        .submenu .nav-link.active {
+            color: white;
+            background-color: transparent;
+            font-weight: 500;
+        }
+        
+        .submenu .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: -0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+        }
+        
+        .has-submenu > .nav-link::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.7rem;
+            margin-left: auto;
+            transition: transform 0.2s ease;
+        }
+        
+        .has-submenu.open > .nav-link::after {
+            transform: rotate(180deg);
+        }
+        
+        /* Content Area Styles */
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            margin-left: var(--sidebar-width);
+            transition: margin-left var(--transition-speed);
+            min-height: 100vh;
+            background-color: white;
+            border-radius: var(--border-radius) 0 0 0;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Loading Animation */
+        .content-loading {
+            position: relative;
+            min-height: 200px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .left-sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .content-area {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block !important;
+            }
+            
+            .container.sidebar-open .left-sidebar {
+                transform: translateX(0);
+            }
+            
+            .container.sidebar-open .content-area {
+                margin-left: var(--sidebar-width);
+            }
+        }
+        
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-toggle:hover {
+            background: #3a56e8;
+            transform: scale(1.05);
+        }
+        
+        /* Animation for content change */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .content-wrapper {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Footer Styles */
+        .sidebar-footer {
+            padding-top: 1rem;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .user-profile:hover {
+            background-color: var(--sidebar-hover);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.1rem;
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .user-settings {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="container" id="mainContainer">
+        <div class="left-sidebar" id="left-sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-cube"></i> PRUFIA</h2>
+            </div>
+            
+            <div class="sidebar-scroll">
+                <ul class="nav-menu">
+                    <li class="nav-section">
+                        <div class="nav-section-title">Main</div>
+                        <ul>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link active" data-content="content1.html">
+                                    <i class="fas fa-home"></i>
+                                    <span>Dashboard</span>
+                                    <span class="badge">New</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="/passcode">
+                                    <i class="bi bi-key"></i>
+                                    <span>Passcode</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="/submissions">
+                                    <i class="bi bi-database"></i> 
+                                    <span>Submissions</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="/semesters">
+                                    <i class="bi bi-diagram-3"></i> 
+                                    <span>Semesters</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-section">
+                        <div class="nav-section-title">Management</div>
+                        <ul>
+                            <li class="nav-item has-submenu">
+                                <a href="#" class="nav-link">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span>Teachers</span>
+                                </a>
+                                <ul class="submenu">
+                                    <li class="nav-item">
+                                        <a href="#" class="nav-link" data-content="users-list.html">All Teachers</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="#" class="nav-link" data-content="users-roles.html">Roles & Permissions</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="#" class="nav-link" data-content="users-add.html">Add New Teacher</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item has-submenu">
+                                <a href="#" class="nav-link">
+                                    <i class="bi bi-mortarboard"></i>
+                                    <span>Students</span>
+                                </a>
+                                <ul class="submenu">
+                                    <li class="nav-item">
+                                        <a href="#" class="nav-link" data-content="users-list.html">All Students</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="#" class="nav-link" data-content="users-add.html">Add New Student</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="orders.html">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <span>Logs</span>
+                                    <span class="badge">5</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-section">
+                        <div class="nav-section-title">Communication</div>
+                        <ul>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="messages.html">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Messages</span>
+                                    <span class="badge">12</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="notifications.html">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Notifications</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="calendar.html">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>Calendar</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-section">
+                        <div class="nav-section-title">System</div>
+                        <ul>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="settings.html">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-content="help.html">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>Help Center</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">RH</div>
+                    <div class="user-info">
+                        <div class="user-name">Roland Hangi</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                    <div class="user-settings">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-area" id="content-area">
+            <div class="content-loading">
+                <div class="loading-spinner" id="loadingSpinner">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+                <div class="content-wrapper" id="contentWrapper">
+                    <!-- Default content -->
+                    <div class="content-header">
+                        <h1>Dashboard Overview</h1>
+                        <p class="text-muted">Welcome back! Here's what's happening with your projects today.</p>
+                    </div>
+                    
+                    <div class="content-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-primary">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h3>$24,300</h3>
+                                        <p>Total Revenue</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-success">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h3>1,254</h3>
+                                        <p>Total Customers</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-warning">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h3>356</h3>
+                                        <p>Total Orders</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-danger">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h3>12</h3>
+                                        <p>Pending Tasks</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced content loading with animations
+        async function loadContent(contentUrl) {
+            const contentWrapper = document.getElementById('contentWrapper');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            // Show loading spinner
+            contentWrapper.style.opacity = '0';
+            loadingSpinner.style.display = 'block';
+            
+            try {
+                const response = await fetch(contentUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const html = await response.text();
+                
+                // Add slight delay for better UX
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                contentWrapper.innerHTML = html;
+                contentWrapper.style.opacity = '1';
+                
+                // Update active nav item
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('data-content') === contentUrl) {
+                        link.classList.add('active');
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading content:', error);
+                contentWrapper.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Failed to load content. Please try again.</p>
+                    </div>
+                `;
+            } finally {
+                loadingSpinner.style.display = 'none';
+                contentWrapper.style.opacity = '1';
+            }
+        }
+        
+        // Mobile sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('mainContainer').classList.toggle('sidebar-open');
+        });
+        
+        // Submenu toggle functionality
+        document.querySelectorAll('.has-submenu > .nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const parent = this.parentElement;
+                const submenu = parent.querySelector('.submenu');
+                
+                // Close all other submenus first
+                document.querySelectorAll('.has-submenu').forEach(item => {
+                    if (item !== parent) {
+                        item.classList.remove('open');
+                        item.querySelector('.submenu').style.maxHeight = '0';
+                    }
+                });
+                
+                // Toggle current submenu
+                parent.classList.toggle('open');
+                if (parent.classList.contains('open')) {
+                    submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                } else {
+                    submenu.style.maxHeight = '0';
+                }
+            });
+        });
+        
+        // Initialize first content as active
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstNavLink = document.querySelector('.nav-link');
+            if (firstNavLink) {
+                firstNavLink.classList.add('active');
+            }
+            
+            // Add click handlers for all nav links
+            document.querySelectorAll('.nav-link[data-content]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (!this.parentElement.classList.contains('has-submenu')) {
+                        loadContent(this.getAttribute('data-content'));
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

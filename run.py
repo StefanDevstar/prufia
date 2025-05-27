@@ -64,8 +64,22 @@ def handle_join_admin_room():
     join_room('admin-room')
     print(f"Admin joined admin-room")      
 
+#test routes
+@app.route('/ch')
+def ch_home():
+    return render_template('ch/base.html')
 
+@app.route('/ch/content1')
+def content1():
+    return render_template('ch/content1.html')
 
+@app.route('/ch/content2')
+def content2():
+    return render_template('ch/content2.html')
+
+@app.route('/ch/left')
+def left_sidebar():
+    return render_template('ch/left.html')
 
 
 
