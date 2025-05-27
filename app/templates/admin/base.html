@@ -7,9 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-
-    </style>
 </head>
 <body>
     <div class="container-admin">
@@ -98,7 +95,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script>
+    <script src="{{ url_for('static', filename='js/admin/base.js') }}"></script>
+    <!-- <script>
         const socket = io({
             reconnection: true,
             reconnectionAttempts: 5,
@@ -196,18 +194,14 @@
                     return response.text();
                 })
                 .then(html => {
-                    // Create temporary container
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = html;
                     
-                    // Remove any script tags (we handle all JS in base.html)
                     const scripts = tempDiv.querySelectorAll('script');
                     scripts.forEach(script => script.remove());
                     
-                    // Insert cleaned HTML
                     document.querySelector('.main-content').innerHTML = tempDiv.innerHTML;
                     
-                    // Initialize any page-specific components
                     if (url.includes('submissions')) {
                         initSubmissionsPage();
                     } else if (url.includes('passcode')) {
@@ -221,7 +215,6 @@
         }
 
         function initSubmissionsPage() {
-            // Any submissions page specific initialization
             console.log('Submissions page initialized');
         }
 
@@ -357,14 +350,11 @@
                     });
             }
             
-            // Handle approve button clicks
             if (e.target.closest('.approve-btn')) {
                 const btn = e.target.closest('.approve-btn');
                 const studentId = btn.dataset.id;
                 const nameOrAlias = btn.dataset.name_or_alias;
                 const createdAt = btn.dataset.created_at;
-                
-                // Fill the modal form fields
                 document.getElementById('instructorFeedback').textContent = nameOrAlias;
                 document.getElementById('submissionDateDisplay').textContent = createdAt;
                 document.getElementById('resubmitStudentId').value=studentId
@@ -372,7 +362,6 @@
                 const row = btn.closest('tr');
                 if (row) {
                     const rowId = row.id.replace('baseline-', '');
-                    // You can access other row-specific data here if needed
                 }
             }
         });
@@ -400,15 +389,11 @@
                         return response.json();
                     })
                     .then(data => {
-                        // Hide modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
                         modal.hide();
                         
-                        // Show success message
                         showNotification("Approved successfully!", "info")
-                        // Optionally refresh the page or update the UI
                         if (data.success) {
-                            // Update the specific row in the table
                             const row = document.getElementById(`baseline-${base_id}`);
                             if (row) {
                                 const statusCell = row.querySelector('#status-' + base_id);
@@ -434,6 +419,6 @@
                 }
             }
         });
-    </script> 
+    </script>  -->
 </body>
 </html>

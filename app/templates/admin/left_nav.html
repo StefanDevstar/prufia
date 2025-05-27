@@ -7,24 +7,26 @@
     </div>
     
     <ul class="nav flex-column admin-nav" >
+        
+        <li class="nav-item">
+            <a class="nav-link active" onclick="loadContent('/passcode')">
+                <i class="bi bi-key"></i> Passcode
+            </a>
+        </li>
+        
+        <li class="nav-item">
+            <a class="nav-link" onclick="loadContent('/submissions')">
+                <i class="bi bi-database"></i> Submissions
+            </a>
+        </li>
         <li class="nav-item">
             <a class="nav-link" onclick="loadContent('/semesters')">
                 <i class="bi bi-diagram-3"></i> Semesters
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link active" onclick="loadContent('/passcode')">
-                <i class="bi bi-key"></i> Passcode
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link" onclick="loadContent('/users')">
                 <i class="bi bi-people"></i> Users
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" onclick="loadContent('/submissions')">
-                <i class="bi bi-database"></i> Submissions
             </a>
         </li>
     </ul>

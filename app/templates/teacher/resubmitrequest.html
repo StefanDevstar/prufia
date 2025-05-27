@@ -169,6 +169,14 @@
                             }
                             document.getElementById('submissionDetails').innerHTML = details;
                         }
+                    })
+                    .catch(error => {
+                        document.getElementById('submissionDetails').innerHTML = `
+                            <div class="alert alert-danger" style="white-space: none; display:flex;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <span>${error.error || 'This file was already approved. Since the student has logged into our platform, the previous baseline versions have been removed from our database.'}</span>
+                            </div>
+                        `;
                     });
             });
         });

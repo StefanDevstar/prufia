@@ -329,12 +329,22 @@ def view_submission(student_id):
 @app.route('/view_submission_admin/<student_id>')
 def view_submission_admin(student_id):
     baselines, error, status_code = get_last_baseline_admin(student_id)  # Unpack all 3 values
+    print("baselines===>",baselines)
     if error:
         return render_template('error.html', message=error), status_code  # Use the returned status code
-    if baselines:
-        print("baselines:",baselines)
-        return jsonify(baselines)
-    return jsonify({'error': 'Submission not found'}), 404
+    if not baselines:  # If baselines is empty/None
+        return jsonify({'error': 'Submission not found'}), 404
+    cleaned_baselines = {
+        k: v for k, v in baselines.items() 
+        if v is not None or k == 'feedback'  # Keep feedback even if None
+    }
+    
+    # Convert datetime to string
+    if 'created_at' in cleaned_baselines:
+        cleaned_baselines['created_at'] = cleaned_baselines['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+    
+    print("Returning cleaned baselines:", cleaned_baselines)
+    return jsonify(cleaned_baselines)
 
 @app.route('/request_resubmit', methods=['POST'])
 def request_resubmit():

@@ -6,24 +6,10 @@
     <title>Student Passcode Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        .passcode-cell { min-width: 150px; }
-        .status-badge { font-size: 0.8rem; }
-        #socket-status {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            z-index: 1000;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-    </style>
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/passcode.css') }}">
 <body>
     <div class="container mt-4" style="margin-left:0;">
         <h1 class="mb-4">Student Passcode Management</h1>
-        
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Students List</h5>
@@ -37,7 +23,6 @@
                     </button>
                 </div>
             </div>
-            
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -91,7 +76,6 @@
         </div>
     </div>
 
-    <!-- Passcode Modal -->
     <div class="modal fade" id="passcodeModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -113,7 +97,6 @@
             </div>
         </div>
     </div>
-    <!-- Custom Confirm Modal -->
     <div class="modal fade" id="confirmGenerateModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -132,7 +115,6 @@
             </div>
         </div>
     </div>
-    <!-- Notification Toast -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header bg-primary text-white">
@@ -143,13 +125,10 @@
         </div>
     </div>
 
-    <!-- JavaScript Libraries -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Socket.IO and Application Logic -->
-    <script>
-        // Initialize Socket.IO connection
+    <script src="{{ url_for('static', filename='js/admin/passcode.js') }}"></script>
+    <!-- <script>
         const socket = io({
             reconnection: true,
             reconnectionAttempts: 5,
@@ -160,17 +139,9 @@
             }
         });
         const socketStatus = document.getElementById('socket-status');
-        
-        
-        
-        // Handle student login events
         socket.on('student-login', (data) => {
-            console.log('Student login event:', data);
-            
             const row = document.querySelector(`tr[data-student-id="${data.student_id}"]`);
             if (!row) return;
-            
-            // Update status cell
             const statusCell = row.querySelector(`#use-status-${data.student_id}`);
             if (statusCell) {
                 statusCell.innerHTML = `
@@ -178,16 +149,12 @@
                     <small class="text-muted">${new Date().toLocaleTimeString()}</small>
                 `;
             }
-            
-            // Disable generate button
             const genBtn = row.querySelector('.generate-passcode-btn');
             if (genBtn) genBtn.disabled = true;
             
             showNotification(`Student ${data.student_id} logged in at ${new Date().toLocaleTimeString()}`);
         });
-        // Connection handlers
         socket.on('connect', () => {
-            console.log('Connected to server with ID:', socket.id);
             socketStatus.textContent = 'Connected ✓';
             socketStatus.className = 'badge bg-success';
             socket.emit('join-admin-room');
@@ -206,14 +173,10 @@
         });
         
         document.getElementById('downloadCsvBtn').addEventListener('click', function() {
-            // Fetch data from your API
             fetch('/api/submissions')
                 .then(response => response.json())
                 .then(data => {
-                    // Prepare CSV headers
                     const headers = ['Student ID', 'Name', 'Submitted At', 'Status', 'Score'];
-                    
-                    // Prepare CSV rows
                     const rows = data.map(item => [
                         item.student_id,
                         item.name_or_alias,
@@ -221,13 +184,9 @@
                         item.status,
                         item.score || ''
                     ]);
-                    
-                    // Combine headers and rows
                     const csvContent = [headers, ...rows]
                         .map(row => row.join(','))
                         .join('\n');
-                    
-                    // Trigger download
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
@@ -243,39 +202,25 @@
                     alert('Failed to download CSV');
                 });
         });
-        // Generate passcode button handler
         document.querySelectorAll('.generate-passcode-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const studentId = this.getAttribute('data-student-id');
-                
-                // Set the student ID in the confirmation modal
                 document.getElementById('confirmStudentId').textContent = studentId;
-                
-                // Show the confirmation modal
                 const confirmModal = new bootstrap.Modal(document.getElementById('confirmGenerateModal'));
                 confirmModal.show();
-                
-                // Store the button reference for later use
                 document.getElementById('confirmGenerateBtn').dataset.studentId = studentId;
                 document.getElementById('confirmGenerateBtn').dataset.originalButton = this;
             });
         });
-
-        // Confirm generate button handler
         document.getElementById('confirmGenerateBtn').addEventListener('click', async function() {
             const studentId = this.dataset.studentId;
             const originalButton = this.dataset.originalButton;
             const passcodeCell = document.getElementById(`passcode-${studentId}`);
             const statusCell = document.getElementById(`use-status-${studentId}`);
-            
-            // Close the confirmation modal
             const confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmGenerateModal'));
             confirmModal.hide();
-            
-            // Set loading state on original button
             originalButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
             originalButton.disabled = true;
-            
             try {
                 const response = await fetch(`/generate-passcode/${studentId}`, {
                     method: 'POST',
@@ -297,13 +242,10 @@
                             <small class="text-muted">Not used yet</small>
                         `;
                     }
-                    
-                    // Show modal with new passcode
                     document.getElementById('studentName').textContent = studentId;
                     document.getElementById('generatedPasscode').textContent = data.passcode;
                     document.getElementById('passcodeExpires').textContent = 
                         new Date(data.expires_at).toLocaleString();
-                    
                     const modal = new bootstrap.Modal(document.getElementById('passcodeModal'));
                     modal.show();
                 } else {
@@ -317,40 +259,26 @@
                 originalButton.disabled = false;
             }
         });
-
-        
         
         document.getElementById('resetAllBtn')?.addEventListener('click', async function() {
             const btn = this;
-            
-            // Confirm action first
             if (!confirm('Are you sure you want to reset ALL passcodes?')) {
                 return;
             }
-            
-            // Set loading state
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Resetting...';
             btn.disabled = true;
-            
             try {
                 const response = await fetch('/reset', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        // 'X-CSRFToken': getCSRFToken() // Add if using CSRF protection
                     }
                 });
-                
                 const data = await response.json();
-                
                 if (!response.ok) {
                     throw new Error(data.message || 'Failed to reset passcodes');
                 }
-                
-                // Show success notification
                 showNotification(`Successfully reset ${data.affected_rows || 0} passcodes`);
-                
-                // Refresh the page after a short delay to show the notification
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
@@ -359,32 +287,22 @@
                 console.error('Reset error:', error);
                 showNotification(error.message || 'Error resetting passcodes', 'danger');
             } finally {
-                // Reset button state (though page will reload on success)
                 btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Reset All Passcodes';
                 btn.disabled = false;
             }
         });
-
-        // Helper function for notifications
         function showNotificationreset(message, type = 'success') {
             const toastEl = document.getElementById('notificationToast');
             const toastBody = document.getElementById('toastMessage');
-            
             if (toastEl && toastBody) {
-                // Update toast appearance based on type
                 const toastHeader = toastEl.querySelector('.toast-header');
                 toastHeader.className = `toast-header bg-${type} text-white`;
-                
-                // Set message
                 toastBody.textContent = message;
-                
-                // Show toast
                 const toast = new bootstrap.Toast(toastEl);
                 toast.show();
             }
         }
 
-        // CSRF helper function (if needed)
         function getCSRFToken() {
             return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
@@ -399,7 +317,6 @@
             });
         });
         
-        // Notification function
         function showNotification(message) {
             const toastEl = document.getElementById('notificationToast');
             const toastBody = document.getElementById('toastMessage');
@@ -410,6 +327,6 @@
                 toast.show();
             }
         }
-    </script>
+    </script> -->
 </body>
 </html>

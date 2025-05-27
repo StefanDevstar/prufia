@@ -170,32 +170,37 @@ def get_last_baseline_admin(student_id):
             submission = cursor.fetchone()
             if not submission:
                 return None, "No submission found for this student", 404
-            cursor.execute(
-                "SELECT * FROM resubmit_request WHERE base_id=%s",
-                (submission['id'],)
-            )
-            resubmit_request = cursor.fetchone()
-            print("resubmit_request====",resubmit_request)
-            if not submission:
-                return None, "No submission found for this student", 404
+            resubmit_request = None
+            if submission.get('id'):
+                cursor.execute(
+                    "SELECT feedback FROM resubmit_request WHERE base_id=%s",
+                    (submission['id'],)
+                )
+                resubmit_request = cursor.fetchone()
             
-            baseline1 = None
-            baseline2 = None
+            result = {
+                "baseline1": None,
+                "baseline2": None,
+                "feedback": resubmit_request.get('feedback') if resubmit_request else None,
+                "created_at": submission.get('created_at')
+            }
+            if resubmit_request and resubmit_request.get('status') == 2:
+                return result, "This submission has already been approved", 200
             errors = []
-            
-            # Process salt
             salt = submission.get('salt')
-            if salt:
+            if not salt:
+                return result, "No salt found in submission", 200
+            
+            try:
                 if isinstance(salt, str):
-                    try:
-                        salt = base64.b64decode(salt)
-                    except:
-                        salt = salt.encode('latin-1')
-                
+                    salt = base64.b64decode(salt)
+               
                 if len(salt) == 255:
                     salt = salt[:16]
                 if len(salt) != 16:
                     return None, f"Invalid salt length: {len(salt)} bytes", 400
+            except Exception as e:
+                return result, f"Salt processing error: {str(e)}", 400
             
             # Decrypt baseline2 if exists
             if submission.get('baseline_2_path') and salt:
@@ -230,7 +235,6 @@ def get_last_baseline_admin(student_id):
                 "baseline1": baseline1,
                 "baseline2": baseline2,
                 "feedback": resubmit_request['feedback'] if resubmit_request else None,
-                # "student_id": submission.get('student_id'),
                 "created_at": submission.get('created_at')
             }
             
