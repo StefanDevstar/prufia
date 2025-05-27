@@ -16,6 +16,16 @@ def get_baselines():
     try:
         conn = db_connection()
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                # SELECT 
+                #     s.id, s.student_id, st.name_or_alias,
+                #     s.baseline_1_path, s.baseline_2_path,
+                #     s.created_at, s.submission_path,
+                #     s.score_baseline_1, s.score_baseline_2,
+                #     s.final_score, s.trust_flag,
+                #     s.interpretation
+                # FROM submissions s
+                # JOIN students st ON s.student_id = st.id
+                # ORDER BY s.created_at DESC
             cursor.execute("""
                 SELECT 
                     s.id, s.student_id, st.name_or_alias,
@@ -23,9 +33,12 @@ def get_baselines():
                     s.created_at, s.submission_path,
                     s.score_baseline_1, s.score_baseline_2,
                     s.final_score, s.trust_flag,
-                    s.interpretation
+                    s.interpretation,
+                    COALESCE(rr.status, 0) AS resubmit_status,
+                    rr.feedback AS resubmit_feedback
                 FROM submissions s
                 JOIN students st ON s.student_id = st.id
+                LEFT JOIN resubmit_request rr ON rr.base_id = s.id
                 ORDER BY s.created_at DESC
             """)
             return cursor.fetchall(), None

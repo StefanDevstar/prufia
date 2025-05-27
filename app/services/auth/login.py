@@ -17,6 +17,7 @@ def handle_login():
     try:
         conn = db_connection()
         with conn.cursor() as cursor:
+            # Get student info
             cursor.execute(
                 "SELECT id, name_or_alias FROM students WHERE name_or_alias=%s",
                 (name,)
@@ -28,6 +29,7 @@ def handle_login():
 
             student_id = student[0]
 
+            # Check passcode
             cursor.execute(
                 "SELECT passcode, used FROM passcode WHERE stdId=%s",
                 (student_id,)
@@ -43,26 +45,26 @@ def handle_login():
                 return {'error': 'Passcode already used'}, 403
             if code != stored_passcode:
                 return {'error': 'Incorrect passcode'}, 401
-            
-            # Getting baselineID
+
+            # Check submission status if exists
             cursor.execute(
-                "SELECT id  FROM submissions WHERE student_id=%s",
+                "SELECT id FROM submissions WHERE student_id=%s ORDER BY created_at DESC LIMIT 1",
                 (student_id,)
             )
-            submiss = cursor.fetchone()
-            submiss_id = submiss[0]
-            # Get approved status
-            cursor.execute(
-                "SELECT status  FROM resubmit_request WHERE base_id=%s",
-                (submiss_id,)
-            )
-            submiss_state = cursor.fetchone()
-            enabled = submiss_state[0]
+            submission = cursor.fetchone()
 
-            if enabled==1:
-                return {'error': 'Not yet approved'}, 405
+            if submission:
+                submission_id = submission[0]
+                cursor.execute(
+                    "SELECT status FROM resubmit_request WHERE base_id=%s",
+                    (submission_id,)
+                )
+                status_result = cursor.fetchone()
+                
+                if status_result and status_result[0] == 1:  # If status is 1 (pending)
+                    return {'error': 'Your submission is pending approval'}, 403
 
-
+            # Mark passcode as used (runs for both cases - with or without submission)
             cursor.execute(
                 "UPDATE passcode SET used=1 WHERE stdId=%s AND used=0",
                 (student_id,)
@@ -85,7 +87,6 @@ def handle_login():
         if conn:
             conn.rollback()
         return {'error': 'Login failed'}, 500
-
     finally:
         if conn:
             conn.close()
