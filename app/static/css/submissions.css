@@ -57,7 +57,7 @@
 }
 
 .reset-filters:hover {
-    background: #5a6268;
+    background: #ffc107e3;
 }
 
 .submissions-tables {
@@ -174,7 +174,6 @@
     display: flex;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
-    margin-bottom: 1rem;
 }
 
 .filter-controls {
@@ -185,7 +184,7 @@
 }
 
 .reset-filters {
-    background: transparent;
+    background: #ffc107;
     border: none;
     color: #6c757d;
     cursor: pointer;
