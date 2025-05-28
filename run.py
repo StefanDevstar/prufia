@@ -305,7 +305,17 @@ def handle_submit_baseline():
 #     return render_template('tea/base.html',initial_content=render_template('teacher.html'))
 @app.route('/tea')
 def tea_home():
-    return render_template('1.html')
+    baselines, error = get_baselines()
+    if error:
+        return render_template('error.html', message=error), 500
+    # return render_template('teacher.html', baselines=baselines if baselines else [])
+    requestlist, error = get_requetsts()
+    if error:
+        return render_template('error.html', message=error), 500
+    # return render_template('teacher/resubmitrequest.html',
+    #     baselines=requestlist if requestlist else [])
+
+    return render_template('1.html',baselines=baselines if baselines else [], requestlist=requestlist if requestlist else [])
 
 @app.route('/tea/content1')
 def tea_content1():
@@ -327,27 +337,27 @@ def tea_left_sidebar():
 def teacherlogin():
     return render_template('teacherlogin.html')
 
-# @app.route('/teacher')
-# def teacher():
-#     baselines, error = get_baselines()
-#     if error:
-#         return render_template('error.html', message=error), 500
-#     return render_template('teacher.html', baselines=baselines if baselines else [])
-#     # return render_template('teacher/base.html', baselines=baselines if baselines else [])
-
-
 @app.route('/teacher')
 def teacher():
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # Return just the content for AJAX requests
-        return jsonify({
-            'html': render_template('teacher.html'),
-            'title': 'Matches | PRUFIA'
-        })
-    else:
-        # Return full page for initial load
-        return render_template('dashboard.html', 
-            initial_content=render_template('teacher.html'))
+    baselines, error = get_baselines()
+    if error:
+        return render_template('error.html', message=error), 500
+    return render_template('teacher.html', baselines=baselines if baselines else [])
+    # return render_template('teacher/base.html', baselines=baselines if baselines else [])
+
+
+# @app.route('/teacher')
+# def teacher():
+#     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#         # Return just the content for AJAX requests
+#         return jsonify({
+#             'html': render_template('teacher.html'),
+#             'title': 'Matches | PRUFIA'
+#         })
+#     else:
+#         # Return full page for initial load
+#         return render_template('dashboard.html', 
+#             initial_content=render_template('teacher.html'))
     
 
 @app.route('/handlerequest')
