@@ -1,5 +1,5 @@
 /*
-SQLyog Community v13.1.7 (64 bit)
+SQLyog Trial v13.1.8 (64 bit)
 MySQL - 10.4.32-MariaDB : Database - prufia
 *********************************************************************
 */
@@ -16,6 +16,77 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/`prufia` /*!40100 DEFAULT CHARACTER SET 
 
 USE `prufia`;
 
+/*Table structure for table `class` */
+
+DROP TABLE IF EXISTS `class`;
+
+CREATE TABLE `class` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `label` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `class` */
+
+insert  into `class`(`id`,`label`) values 
+(1,'math'),
+(2,'computer');
+
+/*Table structure for table `logs` */
+
+DROP TABLE IF EXISTS `logs`;
+
+CREATE TABLE `logs` (
+  `id` bigint(255) DEFAULT NULL,
+  `ip` varchar(255) DEFAULT NULL,
+  `connectedTime` datetime DEFAULT NULL,
+  `mac` varchar(500) DEFAULT NULL,
+  `action` varchar(500) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `logs` */
+
+/*Table structure for table `passcode` */
+
+DROP TABLE IF EXISTS `passcode`;
+
+CREATE TABLE `passcode` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `stdId` int(11) NOT NULL,
+  `passcode` varchar(255) NOT NULL,
+  `used` tinyint(4) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `passcode` */
+
+insert  into `passcode`(`id`,`stdId`,`passcode`,`used`,`created_at`) values 
+(1,9,'KxNiqodPO',0,'2025-05-27 18:15:22'),
+(2,10,'N0SnAJsXO',1,'2025-05-27 09:24:28');
+
+/*Table structure for table `resubmit_request` */
+
+DROP TABLE IF EXISTS `resubmit_request`;
+
+CREATE TABLE `resubmit_request` (
+  `id` bigint(255) NOT NULL AUTO_INCREMENT,
+  `base_id` bigint(255) DEFAULT NULL,
+  `feedback` varchar(500) DEFAULT NULL,
+  `teacherid` bigint(255) DEFAULT NULL,
+  `semesterid` bigint(255) DEFAULT NULL,
+  `status` int(1) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  KEY `id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `resubmit_request` */
+
+insert  into `resubmit_request`(`id`,`base_id`,`feedback`,`teacherid`,`semesterid`,`status`,`created_at`,`approved_at`) values 
+(10,84,'short description',NULL,NULL,1,'2025-05-27 11:16:07',NULL),
+(11,85,'test',NULL,NULL,1,'2025-05-28 05:30:21',NULL);
+
 /*Table structure for table `scores` */
 
 DROP TABLE IF EXISTS `scores`;
@@ -28,14 +99,24 @@ CREATE TABLE `scores` (
   `result_json` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `semester_id` varchar(500) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `student_id` (`student_id`),
-  KEY `submission_id` (`submission_id`),
-  CONSTRAINT `scores_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
-  CONSTRAINT `scores_ibfk_2` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `scores` */
+
+/*Table structure for table `semesters` */
+
+DROP TABLE IF EXISTS `semesters`;
+
+CREATE TABLE `semesters` (
+  `id` bigint(255) NOT NULL AUTO_INCREMENT,
+  `label` varchar(500) DEFAULT NULL,
+  `startDate` date DEFAULT NULL,
+  `endDate` date DEFAULT NULL,
+  KEY `id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `semesters` */
 
 /*Table structure for table `students` */
 
@@ -50,17 +131,15 @@ CREATE TABLE `students` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `class` varchar(500) DEFAULT NULL,
   `semester_id` varchar(500) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`),
-  KEY `fk_teacher` (`teacher_id`),
-  CONSTRAINT `fk_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`)
+  `class_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `students` */
 
-insert  into `students`(`id`,`name_or_alias`,`email`,`password_hash`,`teacher_id`,`created_at`,`class`,`semester_id`) values 
-(9,'Bravo','bravo@gmail.com','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',2,'2025-05-09 13:31:19',NULL,'2025-Pilot'),
-(10,'Alpha','alpha@gmail.com','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',1,'2025-05-09 13:32:10',NULL,'2025-Pilot');
+insert  into `students`(`id`,`name_or_alias`,`email`,`password_hash`,`teacher_id`,`created_at`,`class`,`semester_id`,`class_id`) values 
+(9,'Bravo','bravo@gmail.com','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',2,'2025-05-09 13:31:19',NULL,'2025-Pilot',1),
+(10,'Alpha','alpha@gmail.com','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',1,'2025-05-09 13:32:10',NULL,'2025-Pilot',2);
 
 /*Table structure for table `submissions` */
 
@@ -79,20 +158,19 @@ CREATE TABLE `submissions` (
   `trust_flag` varchar(500) DEFAULT NULL,
   `interpretation` varchar(500) DEFAULT NULL,
   `semester_id` varchar(500) DEFAULT NULL,
+  `ip` varchar(500) NOT NULL,
+  `hash_signature` varchar(255) NOT NULL,
+  `salt` binary(255) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `student_id` (`student_id`),
   CONSTRAINT `submissions_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=86 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `submissions` */
 
-insert  into `submissions`(`id`,`student_id`,`baseline_1_path`,`baseline_2_path`,`created_at`,`submission_path`,`score_baseline_1`,`score_baseline_2`,`final_score`,`trust_flag`,`interpretation`,`semester_id`) values 
-(44,9,'baseline\\9\\60b3d66b-1415.txt','baseline\\9\\d012c31d-9252.txt','2025-05-15 17:17:59',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot'),
-(45,10,'baseline\\10\\139adf0b-763a.txt','baseline\\10\\819cc73e-6508.txt','2025-05-15 17:34:20',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot'),
-(46,9,'baseline\\9\\94b4e6b9-9feb.txt','baseline\\9\\c4074080-c273.txt','2025-05-15 19:07:31',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot'),
-(47,9,'baseline\\9\\afc9c2bc-b4c3.txt','baseline\\9\\4dddd82e-b529.txt','2025-05-15 19:20:49',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot'),
-(48,9,'baseline\\9\\a279a0e5-a640.txt','baseline\\9\\fe3970ad-85ad.txt','2025-05-17 00:06:36',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot'),
-(49,9,'baseline\\9\\f9318f8c-1d01.txt','baseline\\9\\dec7bfeb-b8d0.txt','2025-05-17 13:23:00',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot');
+insert  into `submissions`(`id`,`student_id`,`baseline_1_path`,`baseline_2_path`,`created_at`,`submission_path`,`score_baseline_1`,`score_baseline_2`,`final_score`,`trust_flag`,`interpretation`,`semester_id`,`ip`,`hash_signature`,`salt`) values 
+(84,9,'C:\\Users\\Administrator\\Documents\\soumya\\prufia\\baseline\\9\\baseline1_6345bce7-8c89-4db6-9daf-5daa012bfa1d.enc','C:\\Users\\Administrator\\Documents\\soumya\\prufia\\baseline\\9\\baseline2_6345bce7-8c89-4db6-9daf-5daa012bfa1d.enc','2025-05-27 11:01:20',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot','83.234.227.51','','xS®/‰∑ı–_4ÍEò‰r\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0'),
+(85,10,'C:\\Users\\Administrator\\Documents\\soumya\\prufia\\baseline\\10\\baseline1_ac01714d-f439-4d8b-b244-54ea94a0aa19.enc','C:\\Users\\Administrator\\Documents\\soumya\\prufia\\baseline\\10\\baseline2_ac01714d-f439-4d8b-b244-54ea94a0aa19.enc','2025-05-28 02:22:57',NULL,NULL,NULL,NULL,NULL,NULL,'2025-Pilot','83.234.227.51','','“¢√2b˙Üè‚ê=§=ü˚ë\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0');
 
 /*Table structure for table `teachers` */
 
