@@ -8,14 +8,14 @@
 </head>
 <body class="teacher-body">    
     <div class="dashboard-header">
-        <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
+        <!-- <h2 style="position: absolute;left: 80px;padding-bottom: 20px; display: flex; align-items: center;">
             <img style="width:50px; height:50px;" src="{{ url_for('static', filename='images/prufia.png') }}" alt="logo">
             <div class="title">
                 <span class="pr">PR</span><span class="ufia">UFIA</span>
             </div>
-        </h2>
+        </h2> -->
         <h2>
-            <i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black"> Teacher Dashboard</span>
+            <i class="fas fa-chalkboard-teacher" style="color:black;"></i> <span style="color:black"> Uploads and Matches</span>
         </h2>
     </div>
     
@@ -622,7 +622,9 @@
                     <div class="result-info">
                         <div class="result-title">
                             <span>${result.filename}</span>
-                            <span class="result-flag flag-${result.flag}">${result.label}</span>
+                            <span class="flag flag-${getScoreClass(result.overall_score)}">
+                                ${getScoreLabel(result.overall_score)}
+                            </span>
                         </div>
                         <div class="result-meta">
                             <div class="result-meta-item">
@@ -635,44 +637,7 @@
                             </div>
                             <div class="result-meta-item">
                                 <i class="fas fa-percentage"></i>
-                                <span>Score: ${result.score}%</span>
-                            </div>
-                        </div>
-                        <div class="compact-metrics">
-                            <div class="metric-pill" data-tooltip="Sentence Variation: Low">
-                                <span class="metric-label">SLV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
-                                    result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Vocab Entropy: ${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%">
-                                <span class="metric-label">VE</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Punctuation: Pass">
-                                <span class="metric-label">PR</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score<50?'✓':'✗'}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Passive Voice: ${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %">
-                                <span class="metric-label">PV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Phrase Reuse: ${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}">
-                                <span class="metric-label">RE</span>
-                                <span class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="PGFI: 18%">
-                                <span class="metric-label">AI</span>
-                                <span class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Consistency: ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}">
-                                <span class="metric-label">OC</span>
-                                <span class="metric-value">${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}</span>
+                                <span>Score: <strong>${result.overall_score}</strong></span>
                             </div>
                         </div>
                     </div>
@@ -704,7 +669,17 @@
                 }
             });
         }
-        
+        function getScoreClass(score) {
+            if (score >= 85) return 'green';
+            if (score >= 65) return 'yellow';
+            return 'red';
+        }
+
+        function getScoreLabel(score) {
+            if (score >= 85) return 'Strong Match';
+            if (score >= 65) return 'Needs Review';
+            return 'Possible Mismatch';
+        }
         function populateFilterOptions(data, property, selectElement) {
             const uniqueValues = [...new Set(data.map(item => item[property]))];
             uniqueValues.forEach(value => {
@@ -884,7 +859,9 @@
                     <div class="result-info">
                         <div class="result-title">
                             <span>${result.filename}</span>
-                            <span class="result-flag flag-${result.flag}">${result.label}</span>
+                            <span class="flag flag-${getScoreClass(result.overall_score)}">
+                                ${getScoreLabel(result.overall_score)}
+                            </span>
                         </div>
                         <div class="result-meta">
                             <div class="result-meta-item">
@@ -897,45 +874,7 @@
                             </div>
                             <div class="result-meta-item">
                                 <i class="fas fa-percentage"></i>
-                                <span>Score: ${result.score}%</span>
-                            </div>
-                        </div>
-                        <div class="compact-metrics">
-                            <div class="metric-pill" data-tooltip="Sentence Variation: Low">
-                                <span class="metric-label">SLV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
-                                    result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Vocab Entropy: ${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score} %">
-                                <span class="metric-label">VE</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score} %</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Punctuation: Pass">
-                                <span class="metric-label">PR</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score}-${
-                                    result.stylometrics?.punctual?.assess_text_analysis?.ai_score<50?'✓':'X'}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Passive Voice: ${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.ai_score} %">
-                                <span class="metric-label">PV</span>
-                                <span class="metric-value">${
-                                    result.stylometrics?.passiv?.assess_text_analysis?.assessment} %</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Phrase Reuse: ${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}">
-                                <span class="metric-label">RE</span>
-                                <span class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="PGFI: 18%">
-                                <span class="metric-label">AI</span>
-                                <span class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"} %</span>
-                            </div>
-                            <div class="metric-pill" data-tooltip="Consistency: ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}">
-                                <span class="metric-label">OC</span>
-                                <span class="metric-value">${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}</span>
+                                <span>Score: <strong>${result.overall_score}</strong></span>
                             </div>
                         </div>
                     </div>
@@ -943,7 +882,7 @@
                         <button class="action-btn view-btn" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="action-btn download-btn" title="Download Report">
+                        <button class="action-btn download-btn" title="Download Report" data-report-id="${result.id || result.filename}">
                             <i class="fas fa-download"></i>
                         </button>
                     </div>
@@ -983,20 +922,6 @@
             }, 1500);
 
             displayMatchingResults([]);
-
-            // matchingResults = [];
-            // document.getElementById('resultsList').innerHTML = '';
-            // document.getElementById('resultsCount').textContent = '0 matches';
-            // document.getElementById('detailContent').innerHTML = '<p>Select a result to view details</p>';
-            // document.getElementById('studentFilter').value = '';
-            // document.getElementById('fileFilter').value = '';
-            // document.getElementById('confidenceFilter').value = '';
-            // showToast('All matches have been reset', 'success');
-            // const originalHTML = this.innerHTML;
-            // this.innerHTML = '<i class="fas fa-check"></i> Reset Complete';
-            // setTimeout(() => {
-            //     this.innerHTML = originalHTML;
-            // }, 1500);
         });
     </script>
 </body>

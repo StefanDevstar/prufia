@@ -10,6 +10,7 @@ from app.services.auth.login import handle_login
 from app.services.common.getters import get_baselines, get_submissions, get_last_baseline, get_requetsts,get_last_baseline_admin
 from app.services.security.protect import decrypt
 from app.services.admin.common import updateApprve
+from app.services.common.fileread import  read_file
 from app.services.student.submit import submit_baseline, getstudents,getstudentNamebyId
 from app.services.teacher.business import getPlantext, workingScore, handleResubmitRequest
 from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
@@ -64,7 +65,7 @@ def handle_join_admin_room():
     join_room('admin-room')
     print(f"Admin joined admin-room")      
 
-#test routes
+#############################Admin panel#######################################
 @app.route('/ch')
 def ch_home():
     return render_template('ch/base.html')
@@ -81,7 +82,7 @@ def content2():
 def left_sidebar():
     return render_template('ch/left.html')
 
-
+##############################################################################
 
 
 #Admin routes
@@ -175,8 +176,6 @@ def update_submission_status():
         'message': f'Status updated to {new_status}'
     })
 
-
-
 @app.route('/submissions')
 def manage_submissions():
     requestlist, error = get_requetsts()
@@ -225,9 +224,6 @@ def reset():
 @app.route('/admin')
 def admin_dashboard():
     return render_template('admin/main.html')
-
-
-
 
 
 
@@ -303,19 +299,56 @@ def handle_submit_baseline():
     
     return jsonify(result), status_code
 
+# Teacher test routes
+# @app.route('/tea')
+# def tea_home():
+#     return render_template('tea/base.html',initial_content=render_template('teacher.html'))
+@app.route('/tea')
+def tea_home():
+    return render_template('1.html')
 
+@app.route('/tea/content1')
+def tea_content1():
+    return render_template('tea/content1.html')
+
+@app.route('/tea/content2')
+def tea_content2():
+    return render_template('tea/content2.html')
+
+@app.route('/tea/left')
+def tea_left_sidebar():
+    return render_template('tea/left.html')
+
+
+
+# 
 #Teacher routes
 @app.route('/teacher-login')
 def teacherlogin():
     return render_template('teacherlogin.html')
 
+# @app.route('/teacher')
+# def teacher():
+#     baselines, error = get_baselines()
+#     if error:
+#         return render_template('error.html', message=error), 500
+#     return render_template('teacher.html', baselines=baselines if baselines else [])
+#     # return render_template('teacher/base.html', baselines=baselines if baselines else [])
+
+
 @app.route('/teacher')
 def teacher():
-    baselines, error = get_baselines()
-    if error:
-        return render_template('error.html', message=error), 500
-    return render_template('teacher/base.html',
-        baselines=baselines if baselines else [])
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Return just the content for AJAX requests
+        return jsonify({
+            'html': render_template('teacher.html'),
+            'title': 'Matches | PRUFIA'
+        })
+    else:
+        # Return full page for initial load
+        return render_template('dashboard.html', 
+            initial_content=render_template('teacher.html'))
+    
 
 @app.route('/handlerequest')
 def handlerequest():
@@ -327,14 +360,14 @@ def handlerequest():
 
 @app.route('/api/submissions')
 def get_submissions_csv():
-    submissions = get_submissions()  # Your function to get all submissions
+    submissions = get_submissions()  
     return jsonify(submissions)
 
 @app.route('/view_submission/<student_id>')
 def view_submission(student_id):
-    baselines, error, status_code = get_last_baseline(student_id)  # Unpack all 3 values
+    baselines, error, status_code = get_last_baseline(student_id)  
     if error:
-        return render_template('error.html', message=error), status_code  # Use the returned status code
+        return render_template('error.html', message=error), status_code  
     if baselines:
         print("baselines:",baselines)
         return jsonify(baselines)
@@ -342,18 +375,16 @@ def view_submission(student_id):
 
 @app.route('/view_submission_admin/<student_id>')
 def view_submission_admin(student_id):
-    baselines, error, status_code = get_last_baseline_admin(student_id)  # Unpack all 3 values
-    print("baselines===>",baselines)
+    baselines, error, status_code = get_last_baseline_admin(student_id)  
     if error:
-        return render_template('error.html', message=error), status_code  # Use the returned status code
-    if not baselines:  # If baselines is empty/None
+        return render_template('error.html', message=error), status_code  
+    if not baselines:  
         return jsonify({'error': 'Submission not found'}), 404
     cleaned_baselines = {
         k: v for k, v in baselines.items() 
-        if v is not None or k == 'feedback'  # Keep feedback even if None
+        if v is not None or k == 'feedback'  
     }
     
-    # Convert datetime to string
     if 'created_at' in cleaned_baselines:
         cleaned_baselines['created_at'] = cleaned_baselines['created_at'].strftime('%Y-%m-%d %H:%M:%S')
     
@@ -379,7 +410,6 @@ def request_resubmit():
     else:
         return jsonify({'error': error}), 500
 
-
 @app.route('/matches-content')
 def matches_content():    
     baselines, error = get_baselines()
@@ -397,9 +427,6 @@ def validations_content():
         {'assignment': 'Assignment 2', 'status': 'Needs review'}
     ]
     return render_template('teacher/validations.html', validations=validations)
-
-
-
 
 @app.route('/upload_assignments', methods=['POST'])
 def upload_assignments():
@@ -626,12 +653,15 @@ def handle_match_assignments():
         for filename in os.listdir(assignments_dir):
             if str(timestamp) in str(filename):
                 file_path = os.path.join(assignments_dir, filename)
+                print("file info===>",file_path,"---",filename)
                 if os.path.isfile(file_path):
                     try:
                         content = None  
-                        if filename.endswith('.txt'):
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
+                        # if filename.endswith('.txt'):
+                        #     with open(file_path, 'r', encoding='utf-8') as f:
+                        #         content = f.read()
+                        content = read_file(file_path)
+                        #     print("file info===>",file_path,"---",filename)
                         
                         matching_files.append({
                             'filename': filename,

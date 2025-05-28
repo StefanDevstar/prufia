@@ -96,9 +96,10 @@
             left: 10px;
             font-size: 12px;
             color: #333;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(155, 217, 175, 0.8);
             padding: 2px 5px;
             border-radius: 3px;
+            z-index: 1001;
         }
         .dropdown-item input {
             margin-right: 10px;
