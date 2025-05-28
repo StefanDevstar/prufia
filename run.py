@@ -65,7 +65,14 @@ def handle_join_admin_room():
     join_room('admin-room')
     print(f"Admin joined admin-room")      
 
-#############################Admin panel#######################################
+#############################Admin panel ongoing #######################################
+@app.route('/adm')
+def admins():
+    response, error, status_code = getpasscode()
+    if error:
+        return f"Error fetching students: {error}", status_code
+    return render_template('2.html',students=response["data"])
+
 @app.route('/ch')
 def ch_home():
     return render_template('ch/base.html')
@@ -226,79 +233,6 @@ def admin_dashboard():
     return render_template('admin/main.html')
 
 
-
-#Student routes
-@app.route('/login', methods=['POST'])
-def login():
-    result, status_code = handle_login()  
-    
-    if status_code != 200: 
-        return render_template('studentlogin.html', error=result.get('error', 'Unknown error')), status_code
-    
-    session['student_id'] = result['student_id']
-    session['student_name'] = result['student_name']
-    # delete path='baseline/`student_id`' directory
-    baseline_dir = os.path.join('baseline', str(result['student_id']))
-    try:
-        if os.path.exists(baseline_dir):
-            shutil.rmtree(baseline_dir)
-            app.logger.info(f"Deleted baseline directory for student {result['student_id']}")
-    except Exception as e:
-        app.logger.error(f"Error deleting baseline directory: {str(e)}")
-    socketio.emit('student-login', {
-        'student_id': result['student_id'],
-        'new_status': 'Used',
-    }, room='admin-room') 
-    return redirect(url_for('student'))
-
-@app.route('/student')
-def student():
-    if 'student_id' not in session:
-        return redirect(url_for('studentlogin'))
-    
-    submissions, error = get_submissions(session['student_id'])
-    
-    if error:
-        print(f"Error fetching submissions: {error}")
-        submissions = [] 
-    
-    return render_template(
-        'student.html',
-        student_name=session['student_name'],
-        baselines=submissions
-    )
-
-@app.route('/student-login')
-def studentlogin():    
-    return render_template('studentlogin.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('studentlogin'))
-
-@app.route('/submit_baseline', methods=['POST'])
-def handle_submit_baseline():
-    """Endpoint to submit baseline writing samples"""
-    if 'student_id' not in session:
-        return jsonify({"error": "You must be logged in to submit baselines"}), 401
-
-    client_ip = request.remote_addr
-    print(f"Request from IP: {client_ip}")
-
-    result, error, status_code = submit_baseline(
-        student_id=session['student_id'],
-        student_name=session.get('student_name', 'Unknown'),
-        prompt1=request.form.get('prompt1', ''),
-        prompt2=request.form.get('prompt2', ''),
-        client_ip=client_ip
-    )
-    
-    if error:
-        return jsonify({"error": error}), status_code
-    
-    return jsonify(result), status_code
-
 # Teacher test routes final version
 @app.route('/tea')
 def tea_home():
@@ -310,21 +244,7 @@ def tea_home():
         return render_template('error.html', message=error), 500
     return render_template('1.html',baselines=baselines if baselines else [], requestlist=requestlist if requestlist else [])
 
-# @app.route('/tea/content1')
-# def tea_content1():
-#     return render_template('tea/content1.html')
-
-# @app.route('/tea/content2')
-# def tea_content2():
-#     return render_template('tea/content2.html')
-
-# @app.route('/tea/left')
-# def tea_left_sidebar():
-#     return render_template('tea/left.html')
-
-
-
-# 
+ 
 #Teacher routes
 @app.route('/teacher-login')
 def teacherlogin():
@@ -338,20 +258,6 @@ def teacher():
     return render_template('teacher.html', baselines=baselines if baselines else [])
     # return render_template('teacher/base.html', baselines=baselines if baselines else [])
 
-
-# @app.route('/teacher')
-# def teacher():
-#     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-#         # Return just the content for AJAX requests
-#         return jsonify({
-#             'html': render_template('teacher.html'),
-#             'title': 'Matches | PRUFIA'
-#         })
-#     else:
-#         # Return full page for initial load
-#         return render_template('dashboard.html', 
-#             initial_content=render_template('teacher.html'))
-    
 
 @app.route('/handlerequest')
 def handlerequest():
@@ -746,6 +652,80 @@ def find_best_match(prefix, baseline_folder):
     except FileNotFoundError:
         pass
     return None
+
+#Student routes
+@app.route('/login', methods=['POST'])
+def login():
+    result, status_code = handle_login()  
+    
+    if status_code != 200: 
+        return render_template('studentlogin.html', error=result.get('error', 'Unknown error')), status_code
+    
+    session['student_id'] = result['student_id']
+    session['student_name'] = result['student_name']
+    # delete path='baseline/`student_id`' directory
+    baseline_dir = os.path.join('baseline', str(result['student_id']))
+    try:
+        if os.path.exists(baseline_dir):
+            shutil.rmtree(baseline_dir)
+            app.logger.info(f"Deleted baseline directory for student {result['student_id']}")
+    except Exception as e:
+        app.logger.error(f"Error deleting baseline directory: {str(e)}")
+    socketio.emit('student-login', {
+        'student_id': result['student_id'],
+        'new_status': 'Used',
+    }, room='admin-room') 
+    return redirect(url_for('student'))
+
+@app.route('/student')
+def student():
+    if 'student_id' not in session:
+        return redirect(url_for('studentlogin'))
+    
+    submissions, error = get_submissions(session['student_id'])
+    
+    if error:
+        print(f"Error fetching submissions: {error}")
+        submissions = [] 
+    
+    return render_template(
+        'student.html',
+        student_name=session['student_name'],
+        baselines=submissions
+    )
+
+@app.route('/student-login')
+def studentlogin():    
+    return render_template('studentlogin.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('studentlogin'))
+
+@app.route('/submit_baseline', methods=['POST'])
+def handle_submit_baseline():
+    """Endpoint to submit baseline writing samples"""
+    if 'student_id' not in session:
+        return jsonify({"error": "You must be logged in to submit baselines"}), 401
+
+    client_ip = request.remote_addr
+    print(f"Request from IP: {client_ip}")
+
+    result, error, status_code = submit_baseline(
+        student_id=session['student_id'],
+        student_name=session.get('student_name', 'Unknown'),
+        prompt1=request.form.get('prompt1', ''),
+        prompt2=request.form.get('prompt2', ''),
+        client_ip=client_ip
+    )
+    
+    if error:
+        return jsonify({"error": error}), status_code
+    
+    return jsonify(result), status_code
+
+
 
 # -----------------------End routes-----------------------
 
