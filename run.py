@@ -299,35 +299,28 @@ def handle_submit_baseline():
     
     return jsonify(result), status_code
 
-# Teacher test routes
-# @app.route('/tea')
-# def tea_home():
-#     return render_template('tea/base.html',initial_content=render_template('teacher.html'))
+# Teacher test routes final version
 @app.route('/tea')
 def tea_home():
     baselines, error = get_baselines()
     if error:
         return render_template('error.html', message=error), 500
-    # return render_template('teacher.html', baselines=baselines if baselines else [])
     requestlist, error = get_requetsts()
     if error:
         return render_template('error.html', message=error), 500
-    # return render_template('teacher/resubmitrequest.html',
-    #     baselines=requestlist if requestlist else [])
-
     return render_template('1.html',baselines=baselines if baselines else [], requestlist=requestlist if requestlist else [])
 
-@app.route('/tea/content1')
-def tea_content1():
-    return render_template('tea/content1.html')
+# @app.route('/tea/content1')
+# def tea_content1():
+#     return render_template('tea/content1.html')
 
-@app.route('/tea/content2')
-def tea_content2():
-    return render_template('tea/content2.html')
+# @app.route('/tea/content2')
+# def tea_content2():
+#     return render_template('tea/content2.html')
 
-@app.route('/tea/left')
-def tea_left_sidebar():
-    return render_template('tea/left.html')
+# @app.route('/tea/left')
+# def tea_left_sidebar():
+#     return render_template('tea/left.html')
 
 
 
