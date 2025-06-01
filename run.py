@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 import os, time
 import uuid
+import numpy as np
 from werkzeug.utils import secure_filename
 from flask import render_template
 from dotenv import load_dotenv
@@ -42,6 +43,8 @@ app.secret_key = 'prufia_user'
 app.config['BASELINE_FOLDER'] = 'baseline'
 app.config['ASSIGNMENT_FOLDER'] = 'assignments'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'docx'}  
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 os.makedirs(app.config['BASELINE_FOLDER'], exist_ok=True)
@@ -52,6 +55,17 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+def make_json_serializable(data):
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, np.float32):  # Convert numpy float32 to Python float
+        return float(data)
+    elif isinstance(data, list):
+        return [make_json_serializable(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: make_json_serializable(value) for key, value in data.items()}
+    else:
+        return data
 
 @app.route('/')
 def home():
@@ -71,26 +85,15 @@ def admins():
     response, error, status_code = getpasscode()
     if error:
         return f"Error fetching students: {error}", status_code
-    return render_template('2.html',students=response["data"])
 
-@app.route('/ch')
-def ch_home():
-    return render_template('ch/base.html')
+    requestlist, error = get_requetsts()
+    if error:
+        return render_template('error.html', message=error), 500
 
-@app.route('/ch/content1')
-def content1():
-    return render_template('ch/content1.html')
+    return render_template('admin_page.html',students=response["data"], baselines=requestlist if requestlist else [])
 
-@app.route('/ch/content2')
-def content2():
-    return render_template('ch/content2.html')
-
-@app.route('/ch/left')
-def left_sidebar():
-    return render_template('ch/left.html')
 
 ##############################################################################
-
 
 #Admin routes
 @app.route('/passcode')
@@ -234,15 +237,25 @@ def admin_dashboard():
 
 
 # Teacher test routes final version
-@app.route('/tea')
+@app.route('/teacher')
 def tea_home():
     baselines, error = get_baselines()
+
     if error:
         return render_template('error.html', message=error), 500
     requestlist, error = get_requetsts()
     if error:
         return render_template('error.html', message=error), 500
-    return render_template('1.html',baselines=baselines if baselines else [], requestlist=requestlist if requestlist else [])
+
+    seen_names = set()
+    unique_baselines = []
+    for item in baselines:
+        name = item['name_or_alias']
+        if name not in seen_names:
+            seen_names.add(name)
+            unique_baselines.append(item)
+
+    return render_template('teacher_page.html',baselines=unique_baselines if unique_baselines else [], requestlist=requestlist if requestlist else [])
 
  
 #Teacher routes
@@ -250,12 +263,13 @@ def tea_home():
 def teacherlogin():
     return render_template('teacherlogin.html')
 
-@app.route('/teacher')
-def teacher():
-    baselines, error = get_baselines()
-    if error:
-        return render_template('error.html', message=error), 500
-    return render_template('teacher.html', baselines=baselines if baselines else [])
+# @app.route('/teacher')
+# def teacher():
+#     baselines, error = get_baselines()
+#     if error:
+#         return render_template('error.html', message=error), 500
+#     return render_template('teacher.html', baselines=baselines if baselines else [])
+
     # return render_template('teacher/base.html', baselines=baselines if baselines else [])
 
 
@@ -550,6 +564,7 @@ def analyze():
 @app.route('/match_assignments', methods=['POST'])
 def handle_match_assignments():
     data = request.get_json()
+    students = data.get('students')
     timestamp = data.get('timestamp')
     print(f"Received timestamp: {timestamp}")
 
@@ -591,7 +606,7 @@ def handle_match_assignments():
 
     baselines = []
     try:
-        for student_id in os.listdir(baselines_dir):
+        for student_id in students:
             student_dir = os.path.join(baselines_dir, student_id)
             
             if not os.path.isdir(student_dir):
@@ -630,14 +645,15 @@ def handle_match_assignments():
     except FileNotFoundError:
         return jsonify({'error': 'Baseline directory not found'}), 404
     
-    print("baselines--", baselines)
-
-    matchdata=workingScore(matching_files, baselines, socketio)
     
+    matchdata = workingScore(matching_files, baselines, socketio)
+    
+    matchdata_serializable = make_json_serializable(matchdata)
+
     return jsonify({
         'status': 'success',
         'received_timestamp': timestamp,
-        'data':matchdata
+        'data': matchdata_serializable
     })
 def calculate_combined_score(baseline_path, submission_path):
     """Calculate a combined similarity score between baseline and submission"""
@@ -710,7 +726,7 @@ def handle_submit_baseline():
         return jsonify({"error": "You must be logged in to submit baselines"}), 401
 
     client_ip = request.remote_addr
-    print(f"Request from IP: {client_ip}")
+    # typing_metrics = request.form.get("typing_metrics")
 
     result, error, status_code = submit_baseline(
         student_id=session['student_id'],

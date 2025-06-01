@@ -127,7 +127,7 @@
             align-items: center;
             justify-content: space-between;
         }
-        .action-btn {
+        /* .action-btn {
             width: 36px;
             height: 36px;
             border-radius: 50%;
@@ -143,7 +143,7 @@
         .action-btn:hover {
             background: #4a6fa5;
             color: white;
-        }
+        } */
         .result-meta {
             display: flex;
             gap: 15px;
@@ -1103,6 +1103,23 @@
             background-color:#0d6efd;
             cursor: pointer;
         }
+        .download-btn{
+            background-color: gray;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 15px;
+            padding-right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .download-btn:hover{
+            background-color:dimgray;
+            cursor: pointer;
+        }
         .btn-actions{
             display: flex;
             gap: 20px;
@@ -1278,7 +1295,7 @@
                                             </div>
                                             {% for item in baselines %}
                                             <div class="dropdown-item">
-                                                <input type="checkbox" id="option{{ loop.index }}" value="{{ item.name_or_alias }}" checked>
+                                                <input type="checkbox" id="option{{ loop.index }}" sId="{{ item.student_id }}"  value="{{ item.name_or_alias }}" checked>
                                                 <label for="option{{ loop.index }}">{{ item.name_or_alias }}</label>
                                             </div>
                                             {% endfor %}
@@ -1355,11 +1372,14 @@
                                         <td>{{ item.name_or_alias }}</td>
                                         <td>{{ item.created_at }}</td>
                                         <td id="status-{{ item.id }}">
-                                            {% if item.status is not none %}
-                                                <span class="badge bg-warning">Requested</span>
-                                                <small class="text-muted">{{ item.requested_time.strftime('%Y-%m-%d %H:%M') if item.requested_time else '' }}</small>
-                                            {% else %}
-                                                <span class="badge bg-success"></span>
+                                            {% if item.status is none %}
+                                                <span class="badge bg-success status-badge">Original</span>
+                                            {% elif item.status == 1 %}
+                                                <span class="badge bg-warning status-badge">Requested</span>
+                                                <small class="text-muted d-block">{{ item.requested_time.strftime('%Y-%m-%d %H:%M') if item.requested_time else '' }}</small>
+                                            {% elif item.status == 2 %}
+                                                <span class="badge bg-success status-badge">Approved</span>
+                                                <small class="text-muted d-block">{{ item.approved_time.strftime('%Y-%m-%d %H:%M') if item.approved_time else '' }}</small>
                                             {% endif %}
                                         </td>
                                         <td class="btn-actions">
@@ -1723,7 +1743,9 @@
                         },
                         body: JSON.stringify({
                             timestamp: timestamp,
-                            file_count: files.length
+                            file_count: files.length,
+                            students: getSelectedStudents()
+
                         })
                     });
                     
@@ -1735,10 +1757,7 @@
                     console.log("match result===",matchData)
                     const resultsDiv = document.getElementById('matchingResults');
                     resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle" style="color:green;"></i> All matches were completed successfully.</h4>';           
-                    if(files.length===1){
-                        displayMatchingResults(matchData.data,1);
-                    }
-                    else displayMatchingResults(matchData.data);
+                    displayMatchingResults(matchData.data,files.length);
                     console.log("matchdata==",matchData)
                     showToast(`Matching completed for ${files.length} file(s)!`, 'success');
 
@@ -1748,6 +1767,19 @@
                 }
             });
 
+            const checkboxesForStudents = document.querySelectorAll('.dropdown-item input[type="checkbox"]:not(#select-all)');
+
+            // Function to get selected students' names or aliases
+            function getSelectedStudents() {
+                const selectedStudents = [];
+                checkboxesForStudents.forEach((checkbox) => {
+                    if (checkbox.checked) {
+                        selectedStudents.push(checkbox.getAttribute('sId'));
+                    }
+                });
+                return selectedStudents;
+            }
+            
             function displayUploadResults(data) {
                 const resultsDiv = document.getElementById('uploadResults');
                 resultsDiv.innerHTML = '<h4><i class="fas fa-check-circle" style="color:green;"></i> Uploaded successfully</h4>';           
@@ -1784,7 +1816,7 @@
                                 <th>Match Score:</th>
                                 <td>
                                     <span class="score-badge" style="background: ${getFlagColor(result.flag)};">
-                                        ${result.score}% (${result.label})
+                                        ${result.score === 'N/A' ? result.score : `${result.score}%`} (${result.label})
                                     </span>
                                 </td>
                             </tr>
@@ -1871,8 +1903,8 @@
                 
                 data.forEach(result => {
                     const resultItem = document.createElement('li');
-                    resultItem.className = len === 1 ? 'single-result-container' : 'result-item';
-                    if (len === 1) {
+                    resultItem.className = (len === 1 && data.length === 1) ? 'single-result-container' : 'result-item';
+                    if (len === 1 && data.length === 1) {
                         resultItem.style.cssText = `
                             list-style-type: none; 
                             border: 2px solid #4a89dc;
@@ -1900,8 +1932,8 @@
                         <div class="result-info">
                             <div class="result-title">
                                 <span>${result.filename}</span>
-                                <span class="flag flag-${getScoreClass(result.overall_score)}">
-                                    ${getScoreLabel(result.overall_score)}
+                                <span class="flag flag-${getScoreClass(result.score)}">
+                                    ${getScoreLabel(result.score)}
                                 </span>
                             </div>
                             <div class="result-meta">
@@ -1914,8 +1946,8 @@
                                     <span>${result.time}</span>
                                 </div>
                                 <div class="result-meta-item">
-                                    <i class="fas fa-percentage"></i>
-                                    <span>Score: <strong>${result.overall_score}</strong></span>
+                                    ${result.score !== 'N/A' ? '<i class="fas fa-percentage"></i>' : ''}
+                                    <span>Score: <strong>${result.score}</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -1940,7 +1972,7 @@
                         e.stopPropagation();
                         generateAndDownloadPDF(result);
                     });
-                    if (len === 1) {
+                    if (len === 1 && data.length === 1) {
                         singleMatchContainer.appendChild(resultItem);
                     } else {
                         resultsList.appendChild(resultItem);
@@ -1995,7 +2027,8 @@
                         <div class="metadata-item">
                             <div class="metadata-label">Match Score:</div>
                             <div class="metdata-value">
-                                <span class="result-flag flag-${result.flag}">${result.score}%</span>
+                                    ${result.score !== 'N/A' ? `<strong>${result.score}</strong><i class="fas fa-percentage"></i>` : ''}
+                                    
                             </div>
                         </div>
                         <div class="metadata-item">
@@ -2019,8 +2052,8 @@
                                     <h5>Sentence Variation</h5>
                                 </div>
                                 <div class="metric-value">${
-                                        result.stylometrics?.sentence_len?.std_dev<2.5 ? 'LOW' : 
-                                        result.stylometrics?.sentence_len?.std_dev>25?'HIGH' : 'MEDIUM'}</div>
+                                        result.stylometrics?.sentence_len?.std_dev < 2.5 ? 'LOW' : 
+                                        result.stylometrics?.sentence_len?.std_dev > 25 ? 'HIGH' : 'MEDIUM'}</div>
                                 <div class="metric-description">${result.stylometrics?.sentence_len?.assessment?.ai_score}-${result.stylometrics?.sentence_len?.assessment?.assessment}</div>
                             </div>
                             
@@ -2030,9 +2063,7 @@
                                     <h5>Vocabulary Entropy</h5>
                                 </div>
                                 <div class="metric-value">${
-                                        result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.ai_score}%</div>
-                                <div class="metric-description">${
-                                        result.stylometrics?.vocabulary_entropy?.assess_text_analysis?.assessment}</div>
+                                        result.stylometrics?.vocabulary_entropy}%</div>
                             </div>
                             
                             <div class="metric-card">
@@ -2062,8 +2093,7 @@
                                     <div class="metric-icon"><i class="fas fa-redo-alt"></i></div>
                                     <h5>Phrase Reuse</h5>
                                 </div>
-                                <div class="metric-value">${result.stylometrics?.repeated?.assess_text_analysis?.ai_score}</div>
-                                <div class="metric-description">${result.stylometrics?.repeated?.assess_text_analysis?.assessment}</div>
+                                <div class="metric-value">${result.stylometrics?.repeated}</div>
                             </div>
                             
                             <div class="metric-card">
@@ -2071,7 +2101,7 @@
                                     <div class="metric-icon"><i class="fas fa-robot"></i></div>
                                     <h5>PGFI (AI Mimicry)</h5>
                                 </div>
-                                <div class="metric-value">${result.stylometrics.pgfi.gpt_phrases.len==0?"HUMAN":"AI"}</div>
+                                <div class="metric-value">${(result.stylometrics.pgfi.semantic_variance == 0 && result.stylometrics.pgfi.flags.len != 0) ? result.stylometrics.pgfi.flags[0] : result.stylometrics.pgfi.gpt_phrases.len == 0 ? "HUMAN":"AI" }</div>
                                 <div class="metric-description">Variance is ${result.stylometrics.pgfi.semantic_variance}</div>
                             </div>
                             
@@ -2080,9 +2110,9 @@
                                     <div class="metric-icon"><i class="fas fa-book-open"></i></div>
                                     <h5>Structure Consistency</h5>
                                 </div>
-                                <div class="metric-value">${result.stylometrics?.openclose?.ass_analysis?.error}</div>
+                                <div class="metric-value">${result.stylometrics?.openclose?.ass_analysis?.error ? result.stylometrics?.openclose?.ass_analysis?.error : ""}</div>
                                 <div class="metric-description">
-                                    ${result.stylometrics.openclose.ass_analysis.error?  result.stylometrics.openclose.scoring_notes.requirements :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}
+                                    ${result.stylometrics.openclose.ass_analysis.error? "" :  result.stylometrics.openclose.estimated_human_reference.expected_consistency}
                                 </div>
                             </div>
                         </div>
@@ -2137,8 +2167,8 @@
                         <div class="result-info">
                             <div class="result-title">
                                 <span>${result.filename}</span>
-                                <span class="flag flag-${getScoreClass(result.overall_score)}">
-                                    ${getScoreLabel(result.overall_score)}
+                                <span class="flag flag-${getScoreClass(result.score)}">
+                                    ${getScoreLabel(result.score)}
                                 </span>
                             </div>
                             <div class="result-meta">
@@ -2151,8 +2181,8 @@
                                     <span>${result.time}</span>
                                 </div>
                                 <div class="result-meta-item">
-                                    <i class="fas fa-percentage"></i>
-                                    <span>Score: <strong>${result.overall_score}</strong></span>
+                                    ${result.score !== 'N/A' ? '<i class="fas fa-percentage"></i>' : ''}
+                                    <span>Score: <strong>${result.score}</strong></span>
                                 </div>
                             </div>
                         </div>

@@ -25,15 +25,17 @@
                     
                     <label for="prompt1">Prompt 1:</label>
                     <textarea id="prompt1" name="prompt1" 
-                            ondrop="return false;" ondragover="return false;"
-                            onpaste="return false;" oncopy="return false;" oncut="return false;"
                             aria-label="Writing prompt 1"
                             required></textarea>
 
+                            <!-- ondrop="return false;" 
+                            ondragover="return false;"   
+                            oncopy="return false;" 
+                            onpaste="return false;" 
+                            oncut="return false;" 
+                             -->
                     <label for="prompt2">Prompt 2:</label>
                     <textarea id="prompt2" name="prompt2" 
-                            ondrop="return false;" ondragover="return false;"
-                            onpaste="return false;" oncopy="return false;" oncut="return false;"
                             aria-label="Writing prompt 2"
                             required></textarea>
                     
@@ -462,7 +464,7 @@
                     
                     // Create FormData and append metrics
                     const formData = new FormData(form);
-                    formData.append('typing_metrics', JSON.stringify(metrics));
+                    // formData.append('typing_metrics', JSON.stringify(metrics));
                     
                     // Simulate API call (replace with actual fetch)
                     await new Promise(resolve => setTimeout(resolve, 1500));

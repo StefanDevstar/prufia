@@ -45,19 +45,52 @@ class TextAnalyzer:
 analyzer = TextAnalyzer()
 
 
-# • TT = Typing Tempo score
-# • KT = Keystroke Timing
-# • SF = Sentence Fingerprint
-# • PF = Pacing & Flow Drift
-# • SM = Stylometric Match
-# • EB = Edit Behavior
-# = (TT * 0.20) + (KT * 0.20) + (SF * 0.25) + (PF * 0.10) + (SM * 0.10) + (EB * 0.10) + (MC * 0.05)
-def getOverall(tt,kt,sf,pf,sm,eb,mc):
-    return tt*0.2+kt*0.2+sf*0.25+pf*0.1+sm*0.1+eb*0.1+mc*0.05
+# • Sentence_Length_Variation (SF):         0.25
+# • Vocabulary_Entropy (KT):                0.20
+# • Punctuation_Rhythm (PF):                0.10
+# • Passive_Voice (EB):                     0.10
+# • Phrase_Reuse (SM):                      0.15
+# • PGFI AI Mimicry Score (TT):             0.15
+# • Opening_Closing Structure (MC):         0.05
+def getOverall(sf, kt, pf, eb, sm, tt, mc):
+    # Define the weights
+    weights = {
+        'sf': 0.02,
+        'kt': 0.43,
+        'pf': 0.01,
+        'eb': 0.01,
+        'sm': 0.41,
+        'tt': 0.10,
+        'mc': 0.05
+    }
+    
+    inputs = [sf,kt, pf, eb, sm, tt, mc]
+
+    non_zero_inputs = [(value, weights[key]) for value, key in zip(inputs, weights) if value]
+
+    # Check for missing inputs
+    if len(non_zero_inputs) < 5:
+        return -1
+
+    # Calculate total weight for non-zero inputs
+    total_weight = sum(weight for _, weight in non_zero_inputs)
+
+    # Calculate adjusted score
+    final_score = sum(value * weight for value, weight in non_zero_inputs) / total_weight
+    
+    if kt > 50 and sm > 35 and tt < 35:
+        final_score = min(final_score + 42, 100)
+
+    final_score = max(0, min(final_score, 100))
+
+    return round(final_score, 2)
+
+    
 # text = "Hello world! This is NLTK. It splits sentences."
 # output = ['Hello world!', 'This is NLTK.', 'It splits sentences.']
 def get_sentences(text):
     return sent_tokenize(text)
+
 def Sentence_Length_Variation(assess, baseline1, baseline2):
     """
     Analyze sentence length variation and estimate if text appears human-written or AI-generated
@@ -120,7 +153,7 @@ def Sentence_Length_Variation(assess, baseline1, baseline2):
     results['assessment'] = {
         'mean_deviation': mean_deviation,
         'std_deviation': std_deviation,
-        'ai_score': int(ai_score),
+        'ai_score': int(100 - ai_score),
         'assessment': assessment,
         'baseline_mean': baseline_mean,
         'baseline_std': baseline_std
@@ -287,6 +320,23 @@ def word_entropy(text):
 #         )
     
 #     return results
+
+def calculate_kt_entropy(text: str) -> float:
+    """
+    Calculates vocabulary entropy using Shannon entropy (KT score).
+    Normalized to a 0–100 scale.
+    """
+    cleaned_text = ''.join(char.lower() for char in text if char.isalnum() or char.isspace())
+    words = cleaned_text.split()
+    if not words:
+        return 0.0
+    word_counts = Counter(words)
+    total_words = len(words)
+    entropy = -sum((count / total_words) * math.log2(count / total_words)
+                   for count in word_counts.values())
+    normalized_entropy = min(entropy * 20, 100)
+    return round(normalized_entropy, 2)
+
 def analyze_lexical_diversity(baseline1, baseline2, assess_text=None):
     """
     Analyze vocabulary entropy and estimate human reference from baselines.
@@ -862,8 +912,8 @@ def analyze_punctuation_patterns(baseline1, baseline2, assess_text=None):
                 },
                 'ai_score': int(ai_score),
                 'assessment': "Likely AI-generated" if ai_score >= 70 else
-                            "Possibly AI-generated" if ai_score >= 40 else
-                            "Likely human-written",
+                              "Possibly AI-generated" if ai_score >= 40 else
+                              "Likely human-written",
                 'flags': flags
             }
     
@@ -1033,6 +1083,21 @@ def gpt_style_phrases(text):
 #         return convert_value(obj)
 
 #     return make_json_serializable(results)
+
+def calculate_phrase_reuse_score(test_text: str, baseline1: str, baseline2: str) -> float:
+    """
+    Calculates phrase reuse score (SM) as a rough overlap % between test and baseline tokens.
+    """
+    def tokenize(text):
+        return set(word.lower() for word in text.split() if word.isalnum())
+    test_tokens = tokenize(test_text)
+    baseline_tokens = tokenize(baseline1 + ' ' + baseline2)
+    if not test_tokens or not baseline_tokens:
+        return 0.0
+    overlap = test_tokens.intersection(baseline_tokens)
+    reuse_ratio = len(overlap) / len(test_tokens)
+    
+    return round(reuse_ratio * 100, 2)
 
 def compare_repeated_phrases(baseline1_text, baseline2_text, assess_text=None):
     """
@@ -1438,8 +1503,7 @@ def analyze_opening_closing(baseline1, baseline2, ass=None):
                 ass_analysis = {"error": f"Assessment analysis failed: {str(e)}"}
         else:
             ass_analysis = {
-                "error": ass_data.get('error', 'Invalid assessment text'),
-                "reference_error": estimated_reference.get('error')
+                "error": ass_data.get('error', estimated_reference.get('error')),
             }
     
     # --- FINAL RESULTS ---
@@ -2173,7 +2237,18 @@ def detect_gpt_patterns(text, baseline1=None, baseline2=None):
             (count - avg_word_count)**2 for count in word_counts
         ) / len(word_counts)
     else:
-        analysis['semantic_variance'] = 0
+        return {
+            'gpt_phrases': [],
+            'phrase_repetition_score': 0,
+            'transition_density': 0,
+            'semantic_variance': 0,
+            'flags': ["PGFI_INACTIVE: Insufficient sentence data for GPT-pattern detection"],
+            'used_baseline': {
+                'primary': baseline1 if baseline1 else 'moderate',
+                'secondary': baseline2 if baseline2 else 'none'
+            }
+        }
+
     
     # 5. Apply detection rules
     if (analysis['phrase_repetition_score'] > baseline_metrics['phrase_repetition_threshold'] and
