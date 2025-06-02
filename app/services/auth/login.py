@@ -25,7 +25,52 @@ def handle_login():
             student = cursor.fetchone()
 
             if not student:
-                return {'error': 'Invalid credentials'}, 401
+                cursor.execute(
+                    "SELECT stdId FROM passcode WHERE passcode=%s",
+                    (code,)
+                )
+                result = cursor.fetchone()
+                if result and result[0] == -1:
+                    cursor.execute(
+                        "INSERT INTO students (name_or_alias) VALUES (%s)",
+                        (name, )
+                    )
+                    # Commit the transaction
+                    conn.commit()
+                    
+                    # Retrieve the last inserted id
+                    cursor.execute("SELECT LAST_INSERT_ID()")
+                    result = cursor.fetchone()
+
+                    if result:
+                        stdId = result[0]  # Fetching the first element in the tuple
+                        print(f"Student '{name}' inserted with ID: {stdId}")
+                        
+                        cursor.execute(
+                            "UPDATE passcode SET stdId=%s, used=1 WHERE passcode=%s",
+                            (stdId, code,)
+                        )
+                        affected_rows = cursor.rowcount
+
+                        if affected_rows == 0:
+                            print("WARNING: No rows updated - possible race condition")
+
+                            return {'error': 'Passcode already used'}, 403
+
+                        conn.commit()
+
+                        return {
+                            'student_id': stdId,
+                            'student_name': name
+                        }, 200
+
+                    else:
+                        print("Failed to retrieve the last inserted ID.")
+                        return None
+                    
+                else:
+                    return {'error': 'Invalid credentials'}, 401
+
 
             student_id = student[0]
 
@@ -41,10 +86,12 @@ def handle_login():
 
             stored_passcode, used = result
 
-            if used:
-                return {'error': 'Passcode already used'}, 403
             if code != stored_passcode:
                 return {'error': 'Incorrect passcode'}, 401
+                
+            if used:
+                return {'error': 'Passcode already used'}, 403
+            
 
             # Check submission status if exists
             cursor.execute(

@@ -1417,7 +1417,10 @@
                                     <h5 class="mb-0">Students List</h5>
                                     <div>
                                         <span id="socket-status" class="badge bg-secondary connect-status">Connecting...</span>
-                                        <button id="bulkGenerateBtn" class="btn btn-sm btn-success ms-2">
+                                        <button 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#bulkGenerateModal"
+                                            class="btn btn-sm btn-success ms-2">
                                             <i class="bi bi-generate"></i> Bulk Generate
                                         </button>
                                         <button id="downloadCsvBtn" class="btn btn-sm btn-success ms-2">
@@ -1872,6 +1875,61 @@
             </div>
         </div>
     </div>
+      <!-- Bulk Generate Modal -->
+      <div class="modal fade" id="bulkGenerateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Passcode Bulk Generation
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="bulkGenerateForm">
+
+                    <div class="modal-body p-4">
+                        <div id="submissionDetails">
+                            <div class="text-center py-5">
+                                <div class="text-primary d-flex justify-content-around" >
+                                    <div>
+                                        <label class="form-label">Select a class for passcodes</label>
+                                        <div class="">
+                                            <select id="className" class="form-select filter-controls text-center">
+                                                <option value="approved">English 101</option>
+                                                <option value="rejected">Computer</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Number of passcodes</label>
+                                        <div class="">
+                                        <input  type="number" 
+                                                class="form-control" id="passcode_count" name="passcode_count" 
+                                                min="1"
+                                                placeholder="Enter the number of generated passcodes" required />
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button 
+                            type="submit"
+                            id="bulkGnerateBtn"
+                            class="btn btn-sm btn-success ms-2">
+                            <i class="bi bi-generate"></i>Generate
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Close
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Approve Resubmission Modal -->
     <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
@@ -2093,57 +2151,90 @@
   
         // Handle approve form submission
         document.addEventListener('submit', function(e) {
-        if (e.target.id === 'approveForm') {
-            e.preventDefault();                
-            const base_id=document.getElementById('resubmitStudentId').value
-            const is_approved=document.getElementById('approveSwitch').checked
-            if (base_id) {
-                fetch('/approve-endpoint', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        base_id: base_id,
-                        is_approved:is_approved
+            if (e.target.id === 'approveForm') {
+                e.preventDefault();                
+                const base_id=document.getElementById('resubmitStudentId').value
+                const is_approved=document.getElementById('approveSwitch').checked
+                if (base_id) {
+                    fetch('/approve-endpoint', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            base_id: base_id,
+                            is_approved:is_approved
+                        })
                     })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
-                    modal.hide();
-                    
-                    showNotification("Approved successfully!", "info")
-                    if (data.success) {
-                        const row = document.getElementById(`baseline-${base_id}`);
-                        if (row) {
-                            const statusCell = row.querySelector('#status-' + base_id);
-                            const approveBtn = row.querySelector('#approve-btn-' + base_id);
-                            if (statusCell && is_approved) {
-                                statusCell.innerHTML = `
-                                    <span class="badge bg-success status-badge">Approved</span>
-                                    <small class="text-muted d-block">${new Date().toLocaleString()}</small>
-                                `;
-                                approveBtn.disabled = true
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
+                        modal.hide();
+                        
+                        showNotification("Approved successfully!", "info")
+                        if (data.success) {
+                            const row = document.getElementById(`baseline-${base_id}`);
+                            if (row) {
+                                const statusCell = row.querySelector('#status-' + base_id);
+                                const approveBtn = row.querySelector('#approve-btn-' + base_id);
+                                if (statusCell && is_approved) {
+                                    statusCell.innerHTML = `
+                                        <span class="badge bg-success status-badge">Approved</span>
+                                        <small class="text-muted d-block">${new Date().toLocaleString()}</small>
+                                    `;
+                                    approveBtn.disabled = true
+                                }
                             }
                         }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error processing request: ' + error.message);
-                })
-                .finally(() => {
-                    document.getElementById('submitSpinner').classList.add('d-none');
-                    document.getElementById('submitButtonText').textContent = 'Submit Approval';
-                });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error processing request: ' + error.message);
+                    })
+                    .finally(() => {
+                        document.getElementById('submitSpinner').classList.add('d-none');
+                        document.getElementById('submitButtonText').textContent = 'Submit Approval';
+                    });
+                }
             }
-        }
+            if (e.target.id === 'bulkGenerateForm') {
+                e.preventDefault();                
+                const numberOfPasscodes=document.getElementById('passcode_count').value
+                const className = document.getElementById('className').value
+                    fetch('/generate-bulkcode', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            numberOfPasscodes,
+                            className
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkGenerateModal'));
+                        modal.hide();
+                        
+                        showNotification("Generated successfully!", "info")
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error processing request: ' + error.message);
+                    })
+                    .finally(() => {
+                    });
+            }
     });
 
         // Notification functions

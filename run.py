@@ -14,7 +14,7 @@ from app.services.admin.common import updateApprve
 from app.services.common.fileread import  read_file
 from app.services.student.submit import submit_baseline, getstudents,getstudentNamebyId
 from app.services.teacher.business import getPlantext, workingScore, handleResubmitRequest
-from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode
+from app.services.security.passcode import gencode , getpasscode,handle_reset_all_passcode, generate_bulk_code
 from flask_socketio import SocketIO
 from os.path import dirname, join
 
@@ -155,7 +155,7 @@ def approve_status():
                 'message': 'Missing baseline ID',
                 'error': 'base_id_required'
             }), 400
-        status,error=updateApprve(base_id)
+        status, error=updateApprve(base_id)
         return jsonify({
                 'success': True,
                 'message': 'Baseline successfully approved' if is_approved else 'Baseline approval rejected',
@@ -165,6 +165,51 @@ def approve_status():
                     # 'timestamp': datetime.now().isoformat()
                 }
             })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'An error occurred processing your request',
+            'error': str(e)
+        }), 500
+
+@app.route('/generate-bulkcode', methods=['POST'])
+def generate_bulkcode():
+    try:
+        data = request.get_json()
+        className = data.get('className')
+        numberOfPasscodes = data.get('numberOfPasscodes')
+        print("className===",className,"++",numberOfPasscodes)
+        if not className or int(numberOfPasscodes) < 1:
+            return jsonify({
+                'success': False,
+                'message': 'Missing className ID',
+                'error': 'className_required'
+            }), 400
+
+        response, status_code = generate_bulk_code(int(numberOfPasscodes), className)
+
+        if status_code == 200:
+            # Access the JSON response
+            passcodes_info = response.get_json()
+            
+            if passcodes_info['status'] == 'success':
+                print("Passcodes generated successfully:")
+                
+                # Extract the passcodes from the response
+                passcodes = passcodes_info.get('passcodes', [])
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'{numberOfPasscodes} passcodes generated and inserted successfully',
+                    'data': {
+                        'passcodes': passcodes,
+                    }
+                })
+            else:
+                print(f"Error: {passcodes_info['message']}")
+        else:
+            print(f"Failed to generate passcodes. Status code: {status_code}")
         
     except Exception as e:
         return jsonify({
@@ -672,6 +717,7 @@ def find_best_match(prefix, baseline_folder):
 #Student routes
 @app.route('/login', methods=['POST'])
 def login():
+    
     result, status_code = handle_login()  
     
     if status_code != 200: 

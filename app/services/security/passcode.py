@@ -145,6 +145,54 @@ def gencode(student_id):
             'message': str(e)
         }), 500           
         
+def generate_bulk_code(numberOfPasscodes, className):
+    try:
+        if numberOfPasscodes < 1:
+            raise ValueError("Number of passcodes must be positive")
+        
+        length = 9  # Default passcode length
+        chars = string.ascii_letters + string.digits
+        
+        # Generate the required number of passcodes
+        passcodes = [''.join(random.choices(chars, k=length)) for _ in range(numberOfPasscodes)]
+        
+        conn = db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # Prepare a list of tuples for the passcodes to be inserted
+                passcode_records = [(passcode, -1) for passcode in passcodes]
+                
+                # Insert multiple passcodes into the database using executemany
+                cursor.executemany(
+                    """INSERT INTO passcode (passcode, stdId) VALUES (%s, %s)""",
+                    passcode_records
+                )
+                
+                conn.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'number_of_passcodes': numberOfPasscodes,
+                    'message': f'{numberOfPasscodes} passcodes generated and inserted successfully',
+                    'passcodes': passcodes  # Include generated passcodes here
+
+                }), 200
+            
+        except Exception as db_error:
+            conn.rollback()
+            return jsonify({
+                'status': 'error',
+                'message': f"Database error: {str(db_error)}"
+            }), 500
+        finally:
+            conn.close()
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500        
+        
 
 def getpasscode():
     conn = db_connection()
@@ -158,7 +206,7 @@ def getpasscode():
                     passcode.passcode,
                     passcode.used
                 FROM students AS student
-                JOIN passcode ON student.id = passcode.stdId
+                RIGHT JOIN passcode ON student.id = passcode.stdId
             """)
             results = cursor.fetchall()
             
